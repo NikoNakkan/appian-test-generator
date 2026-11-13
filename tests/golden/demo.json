@@ -1,0 +1,319 @@
+{
+  "approved_by": null,
+  "approved_on": null,
+  "objects": {
+    "_a-0000d3e0-0000-8000-9000-000000000000_72": {
+      "type": "rule",
+      "name": "EXP_GetClaim",
+      "path": "content/_a-0000d3e0-0000-8000-9000-000000000000_72.xml",
+      "content_hash": "3011def89328b87a7faff15f915245046fc1f369af938422a37e09b2dfe52078",
+      "references": [
+        {
+          "kind": "record_type",
+          "target": "d3e0000a-0000-4000-8000-00000000000a",
+          "points_to": "recordType EXP_Claim",
+          "uses": 2
+        }
+      ],
+      "platform_functions": {
+        "SYSTEM_SYSRULES_pagingInfo": 1,
+        "SYSTEM_SYSRULES_queryFilter": 1,
+        "SYSTEM_SYSRULES_queryRecordType_v4": 1
+      },
+      "internal_ids": 0,
+      "nodes": [],
+      "flows": []
+    },
+    "_a-0000d3e0-0000-8000-9000-000000000000_64": {
+      "type": "interface",
+      "name": "EXP_ReviewForm",
+      "path": "content/_a-0000d3e0-0000-8000-9000-000000000000_64.xml",
+      "content_hash": "dc3d77cb3aed2fc1c466ffc0d9867bc28f05c940952f9ce6f1312989bdefa336",
+      "references": [
+        {
+          "kind": "sail",
+          "target": "_a-0000d3e0-0000-8000-9000-000000000000_61",
+          "points_to": "interface EXP_ClaimSummary",
+          "uses": 1
+        },
+        {
+          "kind": "xml",
+          "target": "d3e0000a-0000-4000-8000-00000000000a",
+          "points_to": "recordType EXP_Claim",
+          "uses": 1
+        }
+      ],
+      "platform_functions": {
+        "SYSTEM_SYSRULES_ButtonLayout": 1,
+        "SYSTEM_SYSRULES_buttonWidget_v1": 1,
+        "SYSTEM_SYSRULES_formLayout_v1": 1,
+        "SYSTEM_SYSRULES_paragraphField": 1,
+        "SYSTEM_SYSRULES_radioButtonField_v1": 1,
+        "SYSTEM_SYSRULES_sectionLayout_v1": 1
+      },
+      "internal_ids": 0,
+      "nodes": [],
+      "flows": []
+    },
+    "_a-0000d3e0-0000-8000-9000-000000000000_80": {
+      "type": "constant",
+      "name": "EXP_APPROVAL_LIMIT",
+      "path": "content/_a-0000d3e0-0000-8000-9000-000000000000_80.xml",
+      "content_hash": "1f5bc0a32af43bdab286f80779653ec4f834e57ddbb2f6e3a407ba3fcf239e8a",
+      "references": [],
+      "platform_functions": {},
+      "internal_ids": 0,
+      "nodes": [],
+      "flows": []
+    },
+    "d3e0000a-0000-4000-8000-00000000000a": {
+      "type": "recordType",
+      "name": "EXP_Claim",
+      "path": "recordType/d3e0000a-0000-4000-8000-00000000000a.xml",
+      "content_hash": "15e718b8310a4b4e72d626bc435a8e8087ed48029e69f8ac840b15a5e49f513e",
+      "references": [
+        {
+          "kind": "sail",
+          "target": "_a-0000d3e0-0000-8000-9000-000000000000_61",
+          "points_to": "interface EXP_ClaimSummary",
+          "uses": 1
+        },
+        {
+          "kind": "xml",
+          "target": "d3e00014-0000-4000-8000-000000000014",
+          "points_to": "recordType EXP_ClaimLine",
+          "uses": 1
+        },
+        {
+          "kind": "xml",
+          "target": "d3e00032-0000-4000-8000-000000000032",
+          "points_to": "processModel EXP_SubmitClaim",
+          "uses": 1
+        },
+        {
+          "kind": "xml",
+          "target": "d3e00034-0000-4000-8000-000000000034",
+          "points_to": "processModel EXP_Withdraw",
+          "uses": 1
+        }
+      ],
+      "platform_functions": {},
+      "internal_ids": 8,
+      "nodes": [],
+      "flows": []
+    },
+    "d3e00032-0000-4000-8000-000000000032": {
+      "type": "processModel",
+      "name": "EXP_SubmitClaim",
+      "path": "processModel/d3e00032-0000-4000-8000-000000000032.xml",
+      "content_hash": "7f1bc2ed758c6e9f4be019f40e6e7203484d34c6af442a6aa420f65272514324",
+      "references": [
+        {
+          "kind": "record_type",
+          "target": "d3e0000a-0000-4000-8000-00000000000a",
+          "points_to": "recordType EXP_Claim",
+          "uses": 1
+        },
+        {
+          "kind": "sail",
+          "target": "_a-0000d3e0-0000-8000-9000-000000000000_31",
+          "points_to": "integration EXP_PayClaim",
+          "uses": 1
+        },
+        {
+          "kind": "sail",
+          "target": "_a-0000d3e0-0000-8000-9000-000000000000_62",
+          "points_to": "interface EXP_ClaimForm",
+          "uses": 1
+        },
+        {
+          "kind": "sail",
+          "target": "_a-0000d3e0-0000-8000-9000-000000000000_64",
+          "points_to": "interface EXP_ReviewForm",
+          "uses": 1
+        },
+        {
+          "kind": "sail",
+          "target": "_a-0000d3e0-0000-8000-9000-000000000000_70",
+          "points_to": "rule EXP_NeedsApproval",
+          "uses": 1
+        },
+        {
+          "kind": "xml",
+          "target": "_a-0000d3e0-0000-8000-9000-000000000000_62",
+          "points_to": "interface EXP_ClaimForm",
+          "uses": 1
+        },
+        {
+          "kind": "xml",
+          "target": "_a-0000d3e0-0000-8000-9000-000000000000_64",
+          "points_to": "interface EXP_ReviewForm",
+          "uses": 1
+        },
+        {
+          "kind": "xml",
+          "target": "d3e00003-0000-4000-8000-000000000003",
+          "points_to": "group EXP_Approvers",
+          "uses": 1
+        },
+        {
+          "kind": "xml",
+          "target": "d3e0000a-0000-4000-8000-00000000000a",
+          "points_to": "recordType EXP_Claim",
+          "uses": 1
+        },
+        {
+          "kind": "xml",
+          "target": "d3e00033-0000-4000-8000-000000000033",
+          "points_to": "processModel EXP_Notify",
+          "uses": 1
+        }
+      ],
+      "platform_functions": {},
+      "internal_ids": 8,
+      "nodes": [
+        [
+          0,
+          "core.0",
+          "Start Event",
+          "Start"
+        ],
+        [
+          1,
+          "core.4",
+          "XOR",
+          "Needs approval?"
+        ],
+        [
+          2,
+          "internal.17",
+          "User Input Task",
+          "Review claim"
+        ],
+        [
+          3,
+          "core.4",
+          "XOR",
+          "Approved?"
+        ],
+        [
+          4,
+          "internal3.write_records_to_source_23r3",
+          "Write Records",
+          "Save claim"
+        ],
+        [
+          5,
+          "internal.38",
+          "Sub-Process",
+          "Tell employee"
+        ],
+        [
+          6,
+          "internal3.integration",
+          "Call Integration",
+          "Pay claim"
+        ],
+        [
+          7,
+          "core.1",
+          "End Event",
+          "End"
+        ]
+      ],
+      "flows": [
+        [
+          0,
+          1,
+          "connection",
+          "",
+          ""
+        ],
+        [
+          1,
+          2,
+          "connection",
+          "",
+          ""
+        ],
+        [
+          1,
+          4,
+          "connection",
+          "",
+          ""
+        ],
+        [
+          1,
+          4,
+          "gateway_default",
+          "",
+          ""
+        ],
+        [
+          1,
+          2,
+          "gateway_rule",
+          "Yes",
+          "=#\"_a-0000d3e0-0000-8000-9000-000000000000_70\"(amount: pv!amount)"
+        ],
+        [
+          2,
+          3,
+          "connection",
+          "",
+          ""
+        ],
+        [
+          3,
+          4,
+          "connection",
+          "",
+          ""
+        ],
+        [
+          3,
+          5,
+          "connection",
+          "",
+          ""
+        ],
+        [
+          3,
+          5,
+          "gateway_default",
+          "",
+          ""
+        ],
+        [
+          3,
+          4,
+          "gateway_rule",
+          "Approved",
+          "=pv!decision = \"Approve\""
+        ],
+        [
+          4,
+          6,
+          "connection",
+          "",
+          ""
+        ],
+        [
+          5,
+          7,
+          "connection",
+          "",
+          ""
+        ],
+        [
+          6,
+          7,
+          "connection",
+          "",
+          ""
+        ]
+      ]
+    }
+  }
+}

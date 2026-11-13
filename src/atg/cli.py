@@ -1,0 +1,96 @@
+"""atg ingest <export> [--db map.db] — read exports into the map and run the Layer 1 checks."""
+
+from __future__ import annotations
+
+import argparse
+import sqlite3
+import sys
+from pathlib import Path
+
+from atg import store
+from atg.layers.pipeline import run_layers
+from atg.read.select import UnsupportedVersionError
+from atg.read.source import find_roots
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="atg")
+    sub = parser.add_subparsers(dest="cmd", required=True)
+    ing = sub.add_parser("ingest", help="read an export (folder or zip) into the map")
+    ing.add_argument("export", type=Path)
+    ing.add_argument("--db", type=Path, default=Path("map.db"))
+    chg = sub.add_parser(
+        "changes", help="what changed since an earlier import, and which tests to run"
+    )
+    chg.add_argument("--db", type=Path, default=Path("map.db"))
+    chg.add_argument("--head", type=int, help="newer snapshot (default: the latest)")
+    chg.add_argument(
+        "--base", type=int, help="older snapshot (default: previous import of the app)"
+    )
+    srv = sub.add_parser("serve", help="open the local web tool")
+    srv.add_argument("--db", type=Path, default=Path("map.db"))
+    srv.add_argument("--port", type=int, default=8777)
+    args = parser.parse_args(argv)
+
+    if args.cmd == "changes":
+        return _changes(store.connect(args.db), args.head, args.base)
+    if args.cmd == "serve":
+        from atg.web.server import serve
+
+        serve(args.db.resolve(), args.port)
+        return 0
+
+    roots = find_roots(args.export)
+    if not roots:
+        print(f"no export found under {args.export} (no META-INF/MANIFEST.MF)")
+        return 2
+    con = store.connect(args.db)
+    failed = False
+    for root in roots:
+        try:
+            sid, results = run_layers(con, root)
+        except UnsupportedVersionError as e:
+            print(f"SKIP {e}")
+            continue
+        print(f"\n== snapshot {sid}: {root.path} (Appian {root.appian_version})")
+        for r in results:
+            mark = "PASS" if r.ok else "FAIL"
+            print(f"  {mark}  {r.name}: expected {r.expected}, got {r.actual}")
+            for line in r.details:
+                print(f"          {line}")
+        failed |= not all(r.ok for r in results)
+        _print_external(con, sid)
+    return 1 if failed else 0
+
+
+def _changes(con: sqlite3.Connection, head: int | None, base: int | None) -> int:
+    from atg.web.changes_api import changes
+
+    head = head or int(con.execute("SELECT MAX(id) FROM snapshots").fetchone()[0] or 0)
+    r = changes(con, head, base)
+    if "error" in r:
+        print(r["error"])
+        return 2
+    print(f"Snapshot {r['head']} compared with {r['base']}")
+    for c in r["changes"]:
+        print(f"  {c['status']:8} {c['type']:13} {c['name']}")
+    print(f"  {len(r['affected'])} objects affected through dependencies")
+    for kind, counts in r["summary"].items():
+        print(f"  {kind + 's':9} " + ", ".join(f"{n} {v}" for v, n in sorted(counts.items())))
+    return 0
+
+
+def _print_external(con: sqlite3.Connection, sid: int) -> None:
+    rows = con.execute(
+        "SELECT kind, COUNT(DISTINCT target), SUM(occurrences) FROM refs "
+        "WHERE snapshot_id = ? AND resolved = 0 GROUP BY kind ORDER BY 2 DESC",
+        (sid,),
+    ).fetchall()
+    if rows:
+        print("  external (points outside this export, not a failure):")
+        for kind, targets, occ in rows:
+            print(f"          {kind}: {targets} targets, {occ} uses")
+
+
+if __name__ == "__main__":
+    sys.exit(main())

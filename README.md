@@ -1,0 +1,139 @@
+# Appian Test Generator
+
+Reads an Appian **20+** export, builds a map of the app in SQLite, and (in later layers)
+generates tests for it. Design and decisions: [DESIGN.md](DESIGN.md).
+
+Code layout, where to change what, and conventions: see [CLAUDE.md](CLAUDE.md).
+
+## Status
+
+- **Layer 1, inventory and references: built.** Every object, reference and process node of
+  the export goes into SQLite, proved by checks that count the raw files independently.
+- **Layer 2, SAIL parser and decision points: built.** Lark grammar in `src/atg/sail/`; every
+  expression must parse and print back identically. Checks: sources parsed, round trip,
+  `if()` and `forEach` counts against the raw text.
+- **Layer 3, process paths: built.** `src/atg/layers/path_engine.py`: one path per combination
+  of gateway choices; AND splits run all branches; loops run 0, 1 and 2 times; paths whose
+  choices contradict are dropped. Checks: every reachable node and every gateway option is on a
+  path, every process has a path, none cut off at the 2,000-path limit.
+- **Layer 4, features: built.** Entry points (site pages, record actions, web APIs) and
+  everything each one reaches. A person approves them through an Excel sheet: dropdown
+  decisions, blank never counts, edit needs a name, a changed feature needs re-approval.
+- **Test design (offline): built.** Screens, test data, form fields by label, page paths and
+  plain-English UAT scenarios per process path and screen; regression impact between imports.
+- Running tests (Playwright) needs an Appian environment: not started.
+
+## Appian versions
+
+20.1 and up. Exports from 20.1 to 26.6 share one XML format ("Haul"), so one reader covers
+them; versions differ only in which object and node types appear, listed in
+`src/atg/read/known.py` (add one only after seeing it in a real export). Older exports are
+refused, not guessed. The reader was checked against real exports from 20.1 to 26.6 during
+development; the test suite uses a made-up export instead (below).
+
+## Setup
+
+```bash
+python -m venv .venv
+.venv/Scripts/python -m pip install -e ".[dev]"
+```
+
+Nothing else is downloaded: no sample data, no fonts, no services. To try the tool without a
+real export, write the made-up demo export (an "Expense Claims" app) and import it:
+
+```bash
+.venv/Scripts/python -m tests.demo out/expense-claims
+```
+
+## Use
+
+Local web tool (import, live progress, results):
+
+```bash
+.venv/Scripts/atg serve --db map.db
+```
+
+Then open http://127.0.0.1:8777. Three views, picked in the top bar:
+
+- **Tests** (home): every test on the left, filtered by kind (screens, processes, rules) or by
+  feature. The home page shows the counts, the test users needed and the feature sign-off
+  (download the Excel sheet, upload it filled in). Pick a test to see its **UAT scenario**
+  (before you start, numbered steps, expected result, what the business must confirm; "Copy
+  as text") and its **test data**. A process shows its paths and its diagram with the picked
+  path highlighted. Screens include every interface a person opens (site pages, record views,
+  start forms, user task forms, and ones nothing opens), because many never pass through a
+  process.
+- **App**: every object read-only, as in Appian Designer, grouped by type. A process shows its
+  diagram (click a node for its properties); every page shows its code with clickable
+  references, what it uses, what uses it, and "See its tests".
+- **Changes**: compare with an earlier import of the same app: what changed, what that affects
+  through dependencies, and which tests to rerun, add, retire or skip. Click a change for a
+  line-by-line diff.
+
+The top bar also has the snapshot picker, a **checks** chip (opens the health of the map: each
+layer with its checks, decision points, how numbers moved since the previous import) and
+**Import** (paste a folder or zip path, or drop a zip; earlier imports). With nothing imported
+yet, the page asks for an export. Details open in a side panel on the right (Esc closes it).
+
+What the test data covers: start inputs and their fields; the conditions the data must meet,
+in plain words ("doc is filled in", "status = 2"); what people fill in at each task, by field
+label ("decision: “Decision” (radio buttons)", "click the button “Send”"); for each record
+type the table its rows go in, whether it is synced, its related records and the fields Appian
+calculates; buttons and what they do; file upload fields; outside systems; values worth trying
+(empty and filled in, 0/1/many items, around compared values) and test inputs developers saved
+in Appian. Steps carry paths under the Appian base URL built from the export's urlStubs
+(`src/atg/testgen/urls.py`): site pages `/suite/sites/<site>/page/<page>`, record lists
+`/suite/tempo/records/type/<stub>/view/all`, tasks `/suite/tempo/tasks` (Appian's defaults;
+check them on your server).
+
+Names and labels are shown exactly as they are in the export.
+
+Regression from the command line: `atg changes --db map.db` (latest snapshot vs the previous
+import of the same app; `--base` / `--head` pick others). To try it, import the demo export,
+then its next release (`python -m tests.demo out/expense-claims-next --next`: three edits).
+
+How impact spreads (`src/atg/regression/impact.py`, verdicts in `src/atg/regression/verdicts.py`): an object is
+affected when it uses a changed or removed one, transitively. Two kinds of reference are not
+followed, because they are not data dependencies: a record type's own views and actions, and
+anything that merely starts a process (sub-processes are tested on their own). A test path is
+rerun when it passes through a changed node or a node that uses something affected.
+
+Command line only:
+
+```bash
+.venv/Scripts/atg ingest path/to/export-or-zip --db map.db
+```
+
+Every ingest is a new snapshot. It prints each Layer 1 check (PASS/FAIL) and what points
+outside the export. Exit code 1 if any check fails.
+
+## Layer 1 checks
+
+| Check | Compares |
+|---|---|
+| data files → object or unknown | every `.xml`/`.xsd` became an object or was reported |
+| objects per Haul type | raw root-tag count vs SQL |
+| process nodes / connections / gateway rules / defaults | raw text counts vs SQL |
+| canonical `#"` refs | raw `#"` count vs stored references |
+| UUID sweep | every UUID in the raw text got exactly one classification |
+| unknowns | must be 0 — new tags, node types or files fail loudly |
+
+`tests/test_break_it.py` plants a bug for each check and expects it to fail.
+
+## Golden sample (needs you)
+
+Open `tests/golden/demo-review.md`. If the 5 objects match their code, set `approved_by` and
+`approved_on` in `tests/golden/demo.json`. From then on `test_golden.py` freezes them
+(regenerate both with `python -m scripts.make_golden`).
+
+## Tests
+
+All tests run on a made-up export written by `tests/demo/` (`spec.py` holds the app: objects,
+SAIL, process flows; no real company's data). Frozen numbers in the tests are counted on it;
+a change in them must be explained in that test.
+
+## Quality
+
+```bash
+.venv/Scripts/ruff check . && .venv/Scripts/ruff format --check . && .venv/Scripts/mypy && .venv/Scripts/python -m pytest -q
+```

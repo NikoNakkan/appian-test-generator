@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Appian Test Generator</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><b id="title">Appian Test Generator</b><span class="hint" id="subtitle"></span></div>
+  <nav class="tabs" id="tabs" aria-label="Views">
+    <button data-view="tests">Tests</button>
+    <button data-view="app">App</button>
+    <button data-view="changes">Changes</button>
+  </nav>
+  <div class="bar-end">
+    <select id="snapshot" aria-label="Snapshot"></select>
+    <button id="health-btn" class="chip" title="Layer checks">checks</button>
+    <button id="import-btn" class="primary">Import</button>
+  </div>
+</header>
+
+<main>
+  <section class="view" data-view="welcome" aria-label="Welcome">
+    <div class="welcome">
+      <h1>Start with an Appian export</h1>
+      <p class="lede">Import a folder or zip exported from Appian 20 or later. The tool maps the app and works out
+        every test it needs: screens, process paths and rules, with their data and plain-English scenarios.</p>
+      <div id="welcome-import"></div>
+    </div>
+  </section>
+
+  <section class="view split" data-view="tests" aria-label="Tests">
+    <aside class="side">
+      <input type="search" id="ts-q" placeholder="Search tests" aria-label="Search tests">
+      <div class="filters">
+        <div id="ts-kinds"></div>
+        <select id="ts-feature" aria-label="Feature"></select>
+      </div>
+      <div class="list" id="ts-list" role="listbox" aria-label="Tests"></div>
+    </aside>
+    <div class="page" id="ts-page"></div>
+  </section>
+
+  <section class="view split" data-view="app" aria-label="App">
+    <aside class="side">
+      <input type="search" id="app-q" placeholder="Search objects" aria-label="Search objects">
+      <div class="list" id="app-list" role="listbox" aria-label="Objects"></div>
+    </aside>
+    <div class="page" id="app-page"></div>
+  </section>
+
+  <section class="view" data-view="changes" aria-label="Changes">
+    <div class="page wide" id="chg-page"></div>
+  </section>
+</main>
+
+<aside class="side-panel" id="panel" hidden aria-label="Details">
+  <div class="side-panel-bar">
+    <button id="panel-back" hidden aria-label="Back">← Back</button>
+    <span></span>
+    <button id="panel-close" aria-label="Close panel">✕</button>
+  </div>
+  <div id="panel-body"></div>
+</aside>
+
+<script src="core.js"></script>
+<script src="code.js"></script>
+<script src="panel.js"></script>
+<script src="importer.js"></script>
+<script src="health.js"></script>
+<script src="diagram.js"></script>
+<script src="nodeprops.js"></script>
+<script src="testdata.js"></script>
+<script src="tests.js"></script>
+<script src="testpage.js"></script>
+<script src="browse.js"></script>
+<script src="changes.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

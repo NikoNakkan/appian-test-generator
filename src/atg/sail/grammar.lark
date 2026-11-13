@@ -1,0 +1,61 @@
+// Appian SAIL as it appears in 24+ exports (canonical form: #"..." references).
+// Operator precedence, lowest first: comparison, &, + -, * /, ^, unary -, call/index/field.
+
+?start: expr
+
+?expr: concat
+     | expr COMP concat               -> compare
+
+?concat: additive
+       | concat "&" additive          -> concat
+
+?additive: term
+         | additive ADDOP term        -> arith
+
+?term: power
+     | term MULOP power               -> arith
+
+?power: unary
+      | unary "^" power               -> power
+
+?unary: postfix
+      | ADDOP unary                   -> unary
+
+?postfix: atom
+        | postfix "(" args? ")"       -> call
+        | postfix "[" args "]"        -> index
+        | postfix "." field           -> dot
+        | postfix "." "[" args "]"    -> dot_index
+
+args: arg ("," arg)* trailing?
+trailing: ","
+
+?arg: KEY expr                        -> kwarg
+    | expr
+
+field: IDENT | QUOTED | CANON | PREFIXED | NUMBER | STRING
+
+?atom: NUMBER                         -> num
+     | STRING                         -> string
+     | CANON                          -> canon
+     | QUOTED                         -> quoted
+     | PREFIXED                       -> name
+     | IDENT                          -> name
+     | "{" args? "}"                  -> list_literal
+     | "(" expr ")"                   -> paren
+
+// A keyword argument or dictionary key, including its colon: label:, local!x:, 'hitPolicy':
+KEY.3: /(?:#"[^"]*"|(?:[A-Za-z_][A-Za-z0-9_]*!)?(?:[A-Za-z_][A-Za-z0-9_]*|'[^'\n]*'))\s*:(?!=)/
+CANON.2: /#"[^"]*"/
+PREFIXED.2: /[A-Za-z_][A-Za-z0-9_]*![A-Za-z_][A-Za-z0-9_]*/
+STRING: /"(?:[^"]|"")*"/
+QUOTED: /'[^'\n]*'/
+IDENT: /[A-Za-z_][A-Za-z0-9_]*/
+NUMBER: /\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|\.\d+/
+COMP: /<=|>=|<>|=|<|>/
+ADDOP: /[+-]/
+MULOP: /[*\/]/
+
+COMMENT: /\/\*[\s\S]*?\*\//
+%ignore COMMENT
+%ignore /\s+/
