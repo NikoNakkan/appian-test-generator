@@ -72,7 +72,9 @@ async function openDraft(key) {
       <p class="hint">Code name: ${esc(d.rule_name)}</p>`) : section("What it is", `<p class="hint">Not reviewed by the agent yet. Code name: ${esc(d.rule_name)}</p>`)}
     ${section("Agent suggestions", d.suggest.map((s) => `<div>${pill(s.kind.replaceAll("_", " "))} ${esc(nameOf(s.target) || "")} <span class="hint">${esc(s.target ? s.says.slice(s.target.length).replace(/^[:\s]+/, "") : s.says)}</span>
       ${s.kind === "same_feature_as" && s.target && nameOf(s.target) ? `<button data-an-accept="${esc(s.target)}">Merge them</button>` : ""}</div>`).join(""))}
-    ${section("Certainty checks", (d.certainty || []).map((c) => `<div>${c.ok ? pill("pass", "ok") : pill("fail", "bad")} <b>${esc(c.check)}</b> <span class="hint">${esc(c.why)}</span></div>`).join(""))}
+    ${section("Can it be accepted without you?", `<p class="hint">Only when every line below passes. A "not yet" means the agent has more work to do, not that the draft is wrong; you can always approve it yourself.</p>` +
+      (d.certainty || []).map((c) => `<div class="check-row">${c.ok ? pill("yes", "ok") : pill("not yet", "bad")} <b>${esc(c.label || c.check)}</b><div class="hint">${esc(c.why)}</div>
+        ${c.next ? `<div>→ ${esc(c.next)}</div>` : ""}</div>`).join(""))}
     ${section("Why these belong together", d.why.map((w) => `<div>${esc(w)}</div>`).join(""))}
     ${section("Doubts", d.against.map((w) => `<div>${esc(w)}</div>`).join(""))}
     ${section("Doors", d.doors.map((x) => `<div>${esc(x.kind)}: <b>${esc(x.name)}</b>

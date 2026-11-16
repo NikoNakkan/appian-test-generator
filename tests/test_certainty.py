@@ -97,7 +97,7 @@ def test_a_challenge_that_says_no_keeps_it_for_a_person(at: atlas.Atlas) -> None
     challenge(at, 1, "no")
     assert draft(at)["status"] == "draft"
     why = {c["check"]: c["why"] for c in draft(at)["certainty"]}["runs agree"]
-    assert why == "a challenge said it does not hold"
+    assert why == "A re-check said this is not one feature."
     bad = {**note(CLAIMS), "predicate": "boundary_holds", "value": "maybe"}
     assert "boundary_holds needs the value yes or no" in verify.check(at, bad)
 

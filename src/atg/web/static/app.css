@@ -145,6 +145,7 @@ pre.diff .hunk { color: var(--faint) }
 .node-tabs button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; padding: 6px 12px; font-size: 13.5px; color: var(--muted) }
 .node-tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent) }
 .node-body { padding-top: 8px; overflow-x: auto }
+.check-row { padding: 6px 0; border-bottom: 1px solid var(--line) }
 .cond-row { display: flex; gap: 10px; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--line) }
 
 /* Import */
