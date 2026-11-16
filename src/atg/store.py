@@ -69,6 +69,15 @@ CREATE INDEX IF NOT EXISTS object_details_uuid ON object_details (snapshot_id, u
 CREATE INDEX IF NOT EXISTS paths_pm ON paths (snapshot_id, pm_uuid);
 CREATE INDEX IF NOT EXISTS refs_target ON refs (snapshot_id, target);
 CREATE INDEX IF NOT EXISTS refs_source ON refs (snapshot_id, source_uuid);
+CREATE INDEX IF NOT EXISTS nodes_pm ON nodes (snapshot_id, pm_uuid);
+CREATE INDEX IF NOT EXISTS node_details_pm ON node_details (snapshot_id, pm_uuid, gui_id);
+CREATE INDEX IF NOT EXISTS flows_pm ON flows (snapshot_id, pm_uuid);
+CREATE INDEX IF NOT EXISTS path_stats_pm ON path_stats (snapshot_id, pm_uuid);
+CREATE INDEX IF NOT EXISTS expressions_owner ON expressions (snapshot_id, owner_uuid);
+CREATE INDEX IF NOT EXISTS sail_parse_owner ON sail_parse (snapshot_id, owner_uuid);
+CREATE INDEX IF NOT EXISTS branches_owner ON branches (snapshot_id, owner_uuid);
+CREATE INDEX IF NOT EXISTS entry_points_owner ON entry_points (snapshot_id, owner_uuid);
+CREATE INDEX IF NOT EXISTS feature_members_key ON feature_members (snapshot_id, key);
 """
 
 _NEVER_RESOLVED = {RefKind.PLATFORM, RefKind.SELF}

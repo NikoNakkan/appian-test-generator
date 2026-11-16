@@ -25,6 +25,7 @@ from atg.web import (
     paths_api,
     tests_api,
 )
+from atg.web.cache import Answers
 from atg.web.jobs import Jobs
 
 STATIC = Path(__file__).parent / "static"
@@ -33,6 +34,7 @@ _XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 MAX_UPLOAD = 1024**3  # 1 GB
 _SNAP = re.compile(r"^/api/snapshots/(\d+)/([\w-]+)$")
 _JOB = re.compile(r"^/api/jobs/(\d+)$")
+_UNCACHED = {"analysis"}  # shows work leases, which run out with time alone
 
 
 def _int(value: str | None) -> int | None:
@@ -44,6 +46,7 @@ class App:
         self.db = db
         self.uploads = db.parent / ".atg-uploads"
         self.jobs = Jobs(db)
+        self.answers = Answers(db)
         store.connect(db).close()  # create the schema up front
 
     def con(self) -> sqlite3.Connection:
@@ -161,7 +164,10 @@ def make_handler(app: App) -> type[BaseHTTPRequestHandler]:
                 return self._send(data, _XLSX, filename=f"features-snapshot-{sid}.xlsx")
             if what not in views:
                 return self._error(404, "Unknown view.")
-            self._db(views[what])
+            if what in _UNCACHED:
+                return self._db(views[what])
+            key = (sid, what, tuple(sorted(query.items())))
+            self._db(lambda c: app.answers.get(key, lambda: views[what](c)))
 
         def _db(self, fn: Callable[[sqlite3.Connection], Any]) -> None:
             con = app.con()

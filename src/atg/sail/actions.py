@@ -8,8 +8,10 @@ it starts, record types it writes or deletes, record actions it opens, and a!sav
 
 from __future__ import annotations
 
+import copy
 import re
 from dataclasses import dataclass, field
+from functools import lru_cache
 
 from atg.read.xmlutil import UUID_RE
 from atg.sail.ast import (
@@ -48,11 +50,18 @@ class Action:
 
 
 def find(source: str) -> list[Action]:
+    """Parsing is the slow part and screens are asked about again and again: the same text is
+    parsed once per process; callers get their own copies."""
+    return copy.deepcopy(list(_find(source)))
+
+
+@lru_cache(maxsize=2048)
+def _find(source: str) -> tuple[Action, ...]:
     try:
         root = parse(source).root
     except SailSyntaxError:
-        return []
-    return [a for n in nodes(root) if isinstance(n, Call) and (a := _action(n))]
+        return ()
+    return tuple(a for n in nodes(root) if isinstance(n, Call) and (a := _action(n)))
 
 
 def _action(call: Call) -> Action | None:
