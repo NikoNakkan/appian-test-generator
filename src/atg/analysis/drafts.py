@@ -12,6 +12,7 @@ where they disagree the draft says so.
 
 from __future__ import annotations
 
+from collections import Counter
 from typing import Any
 
 from atg.agent import doors, reach
@@ -108,9 +109,34 @@ def build(atlas: Atlas) -> list[dict[str, Any]]:
         _draft(atlas, sorted(m), g.why[root], by_id, reached, shared, rules)
         for root, m in g.members.items()
     ]
+    unique_names(out, by_id, rules["names"])
     certainty.apply(atlas, out)
     atlas.memo["drafts"] = sorted(out, key=lambda d: d["name"].lower())
     return list(atlas.memo["drafts"])
+
+
+def unique_names(out: list[dict[str, Any]], by_id: dict[str, Any], given: dict[str, str]) -> None:
+    """Drafts named after the same door title ("Create", "Review") get where the door lives,
+    then its kind, then a number, until every made-up name differs. A person's name is kept."""
+    lead = {
+        d["key"]: next((x for x in d["doors"] if x["kind"] != "user task"), d["doors"][0])
+        for d in out
+    }
+
+    def extra(d: dict[str, Any], step: int) -> str:
+        door = lead[d["key"]]
+        return str(by_id[door["id"]].get("in") or "") if step == 0 else str(door["kind"])
+
+    for step in (0, 1):
+        clash = Counter(d["name"] for d in out)
+        for d in out:
+            if clash[d["name"]] > 1 and d["key"] not in given and (e := extra(d, step)):
+                d["name"] += f" · {e}"
+    clash, seen = Counter(d["name"] for d in out), Counter[str]()
+    for d in sorted(out, key=lambda d: d["key"]):
+        if clash[d["name"]] > 1 and d["key"] not in given:
+            seen[d["name"]] += 1
+            d["name"] += f" #{seen[d['name']]}"
 
 
 def _draft(

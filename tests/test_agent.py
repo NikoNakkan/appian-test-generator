@@ -12,7 +12,7 @@ from typing import Any
 import pytest
 
 from atg import store
-from atg.agent import atlas, mcp, tools
+from atg.agent import atlas, doors, mcp, tools
 from atg.layers.pipeline import run_layers
 from tests import agentdemo
 from tests.conftest import single_root
@@ -156,3 +156,13 @@ def test_findings_survive_reconnect(at: atlas.Atlas) -> None:
     db = Path(at.con.execute("PRAGMA database_list").fetchone()[2])
     con = sqlite3.connect(db)
     assert con.execute("SELECT COUNT(*) FROM findings").fetchone()[0] >= 2
+
+
+def test_door_titles_written_as_sail_read_as_text() -> None:
+    assert doors.readable('#"SYSTEM_SYSRULES_rtd_getDefaultSummaryViewName"()', "view 1") == (
+        "Summary"
+    )
+    assert doors.readable('="Πληρωμές"', "view 2") == "Πληρωμές"
+    assert doors.readable('rule!T("x", "Detalle")', "view 3") == "x"
+    assert doors.readable('#"_a-0000"()', "view 4") == "view 4"
+    assert doors.readable("History", "view 5") == "History"

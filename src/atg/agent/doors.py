@@ -12,6 +12,7 @@ Gates are visibility (shows or hides); permission is the role map of the object 
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from atg.agent import security, states, triggers
@@ -29,6 +30,24 @@ def _stub(atlas: Atlas, uuid: str) -> str:
     return next(
         (s["value"] for s in atlas.det(uuid).get("settings", []) if s["label"] == "urlStub"), ""
     )
+
+
+_LITERAL = re.compile(r'"((?:[^"]|"")+)"')
+_CANON = re.compile(r'#"[^"]*"')  # references to objects and functions, not text
+
+
+def readable(name: str, fallback: str) -> str:
+    """A title as a person sees it. Record view and action titles can be SAIL: a quoted text,
+    Appian's default summary title, or an expression whose first text is the best guess."""
+    text = name.strip().removeprefix("=").strip()
+    if "getDefaultSummaryViewName" in text:
+        return "Summary"
+    if not text:
+        return fallback
+    if not any(c in text for c in '#"(!'):
+        return text  # already plain
+    m = _LITERAL.search(_CANON.sub("", text))
+    return m.group(1).replace('""', '"') if m else fallback
 
 
 def doors(atlas: Atlas) -> list[Door]:
@@ -68,7 +87,7 @@ def _doors(atlas: Atlas) -> list[Door]:
                         atlas,
                         f"action:{a['uuid']}",
                         a["kind"],
-                        a["name"],
+                        readable(a["name"], "action"),
                         a["target"],
                         a.get("visibility", ""),
                         where,
@@ -84,7 +103,7 @@ def _doors(atlas: Atlas) -> list[Door]:
                         atlas,
                         f"view:{uuid}:{i}",
                         "record view",
-                        v["name"].strip('"') or "view",
+                        readable(v["name"], f"view {i + 1}"),
                         ui,
                         v.get("visibility", ""),
                         tab,

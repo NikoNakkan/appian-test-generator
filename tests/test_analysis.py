@@ -9,6 +9,7 @@ from typing import Any
 import pytest
 
 from atg.agent import atlas, tools
+from atg.analysis import drafts
 from atg.analysis.store import open_for
 from tests import agentdemo
 from tests.conftest_agent import fresh, reimport
@@ -140,3 +141,21 @@ def test_injected_text_is_only_data(at: atlas.Atlas) -> None:
     names = set(tools.BY_NAME)
     assert not names & {"review", "approve", "decide", "authorise"}  # people only
     assert agentdemo.PM_REMIND in at.objects
+
+
+def test_draft_names_are_unique() -> None:
+    by_id = {
+        "a": {"in": "Claims site", "kind": "page"},
+        "b": {"in": "Payments site", "kind": "page"},
+        "c": {"in": "Claims site", "kind": "page"},
+        "d": {"in": "", "kind": "page"},
+    }
+    out: list[dict[str, Any]] = [
+        {"key": k, "name": "Create", "doors": [{"id": k, "kind": "page"}]} for k in "abcd"
+    ]
+    out.append({"key": "e", "name": "Create", "doors": [{"id": "a", "kind": "page"}]})
+    drafts.unique_names(out, by_id, {"e": "Create"})
+    names = [d["name"] for d in out]
+    assert names[4] == "Create"  # a person's name is kept
+    assert len(set(names[:4])) == 4
+    assert names[1] == "Create · Payments site"
