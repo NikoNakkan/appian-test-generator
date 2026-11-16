@@ -5,7 +5,9 @@ door, precision asks how many doors grouped with it truly belong with it, recall
 belong with it were grouped with it. Also listed: reference features split over several
 drafts (oversplit), drafts mixing several reference features (overmerge), doors the reference
 names that the map does not have, and how many decisions people needed (correction effort).
-Comparing two runs' drafts the same way gives their stability.
+Comparing two runs' drafts the same way gives their stability. Auto-accepted drafts are also
+scored on their own: if they often differ from what people made, the certainty rules need
+tightening.
 """
 
 from __future__ import annotations
@@ -44,7 +46,10 @@ def bcubed(found: Grouping, truth: Grouping) -> dict[str, float]:
     }
 
 
-def compare(found: Grouping, truth: Grouping, decisions: int = 0) -> dict[str, Any]:
+def compare(
+    found: Grouping, truth: Grouping, decisions: int = 0, auto: set[str] | None = None
+) -> dict[str, Any]:
+    """auto: keys of auto-accepted drafts, scored on their own (are they safe to trust?)."""
     c, t = _member_of(found), _member_of(truth)
     known = set(c)
     split = [n for n, ds in truth.items() if len({g for d in ds & known for g in c[d]}) > 1]
@@ -57,4 +62,17 @@ def compare(found: Grouping, truth: Grouping, decisions: int = 0) -> dict[str, A
         "overmerged": sorted(merged),
         "reference_doors_not_in_map": sorted(set().union(*truth.values()) - known) if truth else [],
         "correction_effort": decisions,
+        "auto_accepted": _auto(found, truth, auto or set()),
+    }
+
+
+def _auto(found: Grouping, truth: Grouping, auto: set[str]) -> dict[str, int]:
+    """Auto-accepted drafts that equal a reference feature, or at least sit inside one."""
+    drafts = [found[k] for k in auto if k in found]
+    return {
+        "total": len(drafts),
+        "equal_to_a_reference_feature": sum(1 for d in drafts if d in truth.values()),
+        "inside_one_reference_feature": sum(
+            1 for d in drafts if any(d <= t for t in truth.values())
+        ),
     }

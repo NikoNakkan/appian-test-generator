@@ -1,8 +1,9 @@
 // Analysis: honest progress counts, feature drafts for a person to review, the agent's questions,
 // and the lifecycle and access checks. Every decision is previewed before it is kept.
-const anState = { tab: "progress", drafts: [] };
+const anState = { tab: "progress", drafts: [], show: "all" };
 const reviewer = () => localStorage.getItem("atg-reviewer") || "";
-const STATUS_PILL = { approved: "ok", stale: "bad", draft: "idle" };
+const STATUS_PILL = { approved: "ok", "auto-accepted": "ext", stale: "bad", draft: "idle" };
+const SHOW = [["all", "All"], ["draft", "Needs a person"], ["auto-accepted", "Auto-accepted"], ["approved", "Approved"], ["stale", "Stale"]];
 const AN_TABS = [["progress", "Progress"], ["drafts", "Feature drafts"], ["questions", "Questions"], ["checks", "Lifecycle and access"]];
 
 async function renderAnalysis() {
@@ -31,10 +32,13 @@ async function anProgress() {
 async function anDrafts() {
   anState.drafts = await api("analysis-drafts");
   if (!anState.drafts.length) return empty("No drafts yet.");
-  return `<div class="card"><h3>Feature drafts</h3><p class="sub">Proposals built by fixed rules. Open one to see why, and to approve, rename, split or merge it.</p>
-    ${table(["Draft", "Status", "Doors", "Core objects", "User types", "Doubts"], anState.drafts.map((d) => [
+  const shown = anState.drafts.filter((d) => anState.show === "all" || d.status === anState.show);
+  const count = (s) => anState.drafts.filter((d) => s === "all" || d.status === s).length;
+  return `<div class="card"><h3>Feature drafts</h3><p class="sub">Proposals built by fixed rules. Auto-accepted ones passed every certainty check; the rest need a person. Open one to see why, and to approve, reject, rename, split or merge it.</p>
+    ${segmented("an-show", SHOW.map(([v, l]) => [v, `${l} (${count(v)})`]), anState.show)}
+    ${shown.length ? table(["Draft", "Status", "Doors", "Core objects", "User types", "Doubts"], shown.map((d) => [
       `<a href="#" data-an-draft="${esc(d.key)}">${esc(d.name)}</a>`, pill(d.status, STATUS_PILL[d.status]),
-      fmt(d.doors.length), fmt(d.core.length), esc(d.actors.join(" | ")), esc(d.against.join("; "))]))}</div>`;
+      fmt(d.doors.length), fmt(d.core.length), esc(d.actors.join(" | ")), esc(d.against.join("; "))])) : empty("None with this status.")}</div>`;
 }
 
 async function anQuestions() {
@@ -62,6 +66,7 @@ async function openDraft(key) {
   const refs = (xs) => xs.map((x) => `<a href="#" data-panel="${esc(x.id)}">${esc(x.name)}</a>`).join(", ");
   const others = anState.drafts.filter((x) => x.key !== d.key);
   openPanel(`<div class="panel-head">${pill(d.status, STATUS_PILL[d.status])}<h3>${esc(d.name)}</h3></div>
+    ${section("Certainty checks", (d.certainty || []).map((c) => `<div>${c.ok ? pill("pass", "ok") : pill("fail", "bad")} <b>${esc(c.check)}</b> <span class="hint">${esc(c.why)}</span></div>`).join(""))}
     ${section("Why these belong together", d.why.map((w) => `<div>${esc(w)}</div>`).join(""))}
     ${section("Doubts", d.against.map((w) => `<div>${esc(w)}</div>`).join(""))}
     ${section("Doors", d.doors.map((x) => `<div>${esc(x.kind)}: <b>${esc(x.name)}</b>
@@ -71,6 +76,7 @@ async function openDraft(key) {
     ${section("Not yet described by the agent", esc(d.unexplained.join(", ")))}
     ${section("Agent claims", d.claims.map((c) => `<div>${pill(c.level)} ${esc(c.predicate)}: ${esc(c.value)}</div>`).join(""))}
     <div class="panel-actions"><button class="primary" data-an-approve="${esc(d.key)}">Approve boundary</button>
+      ${d.status === "auto-accepted" ? `<button data-an-reject="${esc(d.key)}">Reject auto-accept</button>` : ""}
       <button data-an-rename="${esc(d.key)}">Rename</button>
       ${others.length ? `<select id="an-merge" aria-label="Merge with">${others.map((o) => `<option value="${esc(o.doors[0].id)}">${esc(o.name)}</option>`).join("")}</select>
       <button data-an-merge="${esc(d.doors[0].id)}">Merge with</button>` : ""}</div>`, { kind: "draft", key });
@@ -94,20 +100,22 @@ async function decideUI(body, again) {
 
 document.addEventListener("DOMContentLoaded", () => {
   $("#an-page").addEventListener("click", (e) => {
-    const t = e.target.closest("[data-an],[data-an-draft],[data-an-answer]");
+    const t = e.target.closest("[data-an],[data-an-show],[data-an-draft],[data-an-answer]");
     if (!t) return;
     e.preventDefault();
     if (t.dataset.an) { anState.tab = t.dataset.an; renderAnalysis(); }
+    else if (t.dataset.anShow) { anState.show = t.dataset.anShow; renderAnalysis(); }
     else if (t.dataset.anDraft) openDraft(t.dataset.anDraft);
     else decideUI({ kind: "answer", target: t.dataset.anAnswer, payload: { text: $(`#an-q-${t.dataset.anAnswer}`).value } });
   });
   $("#an-page").addEventListener("change", (e) => { if (e.target.id === "an-who") localStorage.setItem("atg-reviewer", e.target.value.trim()); });
   $("#panel-body").addEventListener("click", (e) => {
-    const t = e.target.closest("[data-an-approve],[data-an-rename],[data-an-split],[data-an-merge]");
+    const t = e.target.closest("[data-an-approve],[data-an-reject],[data-an-rename],[data-an-split],[data-an-merge]");
     if (!t) return;
     const key = panel.stack.at(-1)?.key;
     const reopen = () => openDraft(key);
     if (t.dataset.anApprove) decideUI({ kind: "approve", target: t.dataset.anApprove }, reopen);
+    else if (t.dataset.anReject) decideUI({ kind: "reject", target: t.dataset.anReject, reason: "needs a person" }, reopen);
     else if (t.dataset.anRename) { const name = prompt("New name"); if (name) decideUI({ kind: "rename", target: t.dataset.anRename, payload: { name } }, reopen); }
     else if (t.dataset.anSplit) decideUI({ kind: "split", target: t.dataset.anSplit }, () => openDraft(t.dataset.anSplit));
     else decideUI({ kind: "merge", target: t.dataset.anMerge, payload: { with: $("#an-merge").value } }, reopen);

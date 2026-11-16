@@ -1,5 +1,6 @@
 """Feature drafts, built by fixed rules from the doors and what they reach, then shaped by
-people's decisions. A draft is a proposal, never a fact, until a person approves it.
+people's decisions. A draft is a proposal until a person approves it, or until it passes every
+certainty check (certainty.py) and is auto-accepted, a status counted apart from approvals.
 
 Doors join one draft when they open the same thing, or act on the same record type and share
 most of what they reach (not counting shared helpers). A user task joins the draft whose doors
@@ -15,7 +16,7 @@ from typing import Any
 
 from atg.agent import doors, reach
 from atg.agent.atlas import Atlas
-from atg.analysis import review
+from atg.analysis import certainty, review
 from atg.analysis.store import content_hash, digest, open_for
 
 SUPPORTING = frozenset({"recordType", "datatype", "group", "connectedSystem", "dataStore"})
@@ -107,6 +108,7 @@ def build(atlas: Atlas) -> list[dict[str, Any]]:
         _draft(atlas, sorted(m), g.why[root], by_id, reached, shared, rules)
         for root, m in g.members.items()
     ]
+    certainty.apply(atlas, out)
     atlas.memo["drafts"] = sorted(out, key=lambda d: d["name"].lower())
     return list(atlas.memo["drafts"])
 

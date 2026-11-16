@@ -26,9 +26,11 @@ def main() -> None:
     con = store.connect(args.db)
     at = atlas.load(con, args.snapshot or mcp.latest(con))
     truth = {k: set(v) for k, v in json.loads(args.reference.read_text(encoding="utf-8")).items()}
-    found = {d["key"]: {x["id"] for x in d["doors"]} for d in drafts.build(at)}
+    built = drafts.build(at)
+    found = {d["key"]: {x["id"] for x in d["doors"]} for d in built}
+    auto = {d["key"] for d in built if d["status"] == "auto-accepted"}
     decisions = open_for(at).execute("SELECT COUNT(*) FROM decisions").fetchone()[0]
-    print(json.dumps(evaluate.compare(found, truth, decisions), indent=1))
+    print(json.dumps(evaluate.compare(found, truth, decisions, auto), indent=1))
 
 
 if __name__ == "__main__":

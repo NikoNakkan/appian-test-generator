@@ -1,7 +1,8 @@
-"""Use cases for approved features only: one per goal (one per door a person or system starts
-from), never one per path. Paths become the main scenario and its alternatives; access, owner
-and state conditions become nearest negatives (who or what should be refused). A user task
-given to someone other than the starter is its own use case (a hand-off).
+"""Use cases for accepted features only (approved by a person, or auto-accepted): one per goal
+(one per door a person or system starts from), never one per path. Paths become the main
+scenario and its alternatives; access, owner and state conditions become nearest negatives
+(who or what should be refused). A user task given to someone other than the starter is its
+own use case (a hand-off).
 
 Labels: the goal comes from the door title unless the agent stated one (actor_goal claim);
 preconditions are as configured; nothing here says what the business wants until a person
@@ -16,6 +17,8 @@ from atg.agent import cards, doors, process
 from atg.agent.atlas import Atlas
 from atg.analysis import drafts, review
 from atg.analysis.store import digest, open_for
+
+ACCEPTED = frozenset({"approved", "auto-accepted"})
 
 
 def negatives(door: dict[str, Any]) -> list[str]:
@@ -72,7 +75,7 @@ def build(atlas: Atlas) -> list[dict[str, Any]]:
         return found
     out = []
     for draft in drafts.build(atlas):
-        if draft["status"] != "approved":
+        if draft["status"] not in ACCEPTED:
             continue
         starters = {drafts.actor_key(d) for d in _doors(atlas, draft) if d["kind"] != "user task"}
         for door in _doors(atlas, draft):
@@ -83,6 +86,7 @@ def build(atlas: Atlas) -> list[dict[str, Any]]:
             uc = {
                 "id": f"uc:{door['id']}",
                 "feature": draft["key"],
+                "feature_status": draft["status"],
                 "goal": goal,
                 "goal_from": goal_from,
                 "actor": drafts.actor_key(door),

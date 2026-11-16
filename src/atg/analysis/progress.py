@@ -48,6 +48,7 @@ def measures(atlas: Atlas) -> dict[str, Any]:
     ]
     ds = drafts.build(atlas)
     approved = [d for d in ds if d["status"] == "approved"]
+    auto = [d for d in ds if d["status"] == "auto-accepted"]
     ucs = usecases.build(atlas)
     with_uc = {u["feature"] for u in ucs if u["status"] == "approved"}
     selected = {
@@ -127,16 +128,18 @@ def measures(atlas: Atlas) -> dict[str, Any]:
                 "features approved",
                 len(approved),
                 len(ds),
-                "approved on their current inputs; stale approvals are not counted",
-                "N of the drafts now proposed have an approved boundary",
+                "approved by a person on their current inputs; stale approvals and auto-accepted "
+                "drafts are not counted here",
+                "N of the drafts now proposed have a boundary a person approved",
                 stale=sum(1 for d in ds if d["status"] == "stale"),
+                auto_accepted=len(auto),
             ),
             _m(
                 "use cases",
                 len(with_uc),
-                len(approved),
-                "approved features with an approved use case",
-                "N approved features have reviewed use cases",
+                len(approved) + len(auto),
+                "accepted features (by a person or automatically) with an approved use case",
+                "N accepted features have reviewed use cases",
                 drafted=len(ucs),
             ),
             _m(

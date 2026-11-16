@@ -39,6 +39,7 @@ PREDICATES = frozenset(
         "gap_reason",
         "lifecycle_note",
         "note",
+        "boundary_holds",
     }
 )
 AGENT_LEVELS = frozenset({"stated", "inferred", "statically supported"})
@@ -99,6 +100,11 @@ def check(atlas: Atlas, claim: Any) -> list[str]:
         problems.append(f"level must be one of {', '.join(sorted(AGENT_LEVELS))}")
     if not str(claim.get("value", "")).strip() or len(str(claim.get("value"))) > 500:
         problems.append("value must be 1 to 500 characters")
+    if pred == "boundary_holds" and str(claim.get("value", "")).strip().lower() not in {
+        "yes",
+        "no",
+    }:
+        problems.append("boundary_holds needs the value yes or no")
     evidence = claim.get("evidence")
     if not isinstance(evidence, list) or not evidence:
         return [*problems, "evidence must list at least one object"]

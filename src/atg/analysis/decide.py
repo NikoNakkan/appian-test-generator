@@ -18,7 +18,7 @@ def _target_ok(atlas: Atlas, kind: str, target: str) -> str:
     door_ids = {x["id"] for d in drafts.build(atlas) for x in d["doors"]}
     if kind in {"merge", "split", "move"} and target not in door_ids:
         return f"{target!r} is not a door"
-    if kind in {"rename", "approve"} and target not in keys:
+    if kind in {"rename", "approve", "reject"} and target not in keys:
         return f"{target!r} is not a draft key"
     if kind in {"exclude", "include", "shared", "not_shared"} and target not in atlas.objects:
         return f"{target!r} is not an object in this snapshot"
@@ -36,7 +36,7 @@ def _payload(atlas: Atlas, kind: str, target: str, payload: dict[str, Any]) -> d
 
 
 def _hash(atlas: Atlas, kind: str, target: str) -> str:
-    if kind == "approve":
+    if kind in {"approve", "reject"}:
         return str(drafts.card(atlas, target).get("input_hash", ""))
     if kind == "approve_use_case":
         return str((usecases.get(atlas, target) or {}).get("input_hash", ""))

@@ -8,6 +8,7 @@ Kinds (target in brackets):
   exclude [object] / include [object]   leave an object out of the accounting (or bring it back)
   shared [object] / not_shared [object] override the shared threshold
   approve [draft key]                   approve the boundary as it is now (input hash kept)
+  reject [draft key]                    do not auto-accept it: a person must look
   approve_use_case [use case id], approve_test [test id]
   answer [question id] {"text": ...}    answers the agent's question and unblocks its item
   select_runtime [claim id]             pick a claim to be checked in a running environment
@@ -35,6 +36,7 @@ KINDS = frozenset(
         "shared",
         "not_shared",
         "approve",
+        "reject",
         "approve_use_case",
         "approve_test",
         "answer",

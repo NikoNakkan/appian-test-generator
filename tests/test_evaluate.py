@@ -21,6 +21,13 @@ def test_merge_costs_precision_and_split_costs_recall() -> None:
     assert out["reference_doors_not_in_map"] == ["9"] and out["correction_effort"] == 2
 
 
+def test_auto_accepted_drafts_are_scored_on_their_own() -> None:
+    truth = {"claim": {"1", "2"}, "pay": {"3", "4"}}
+    found = {"a": {"1", "2"}, "b": {"3"}, "c": {"4", "9"}}
+    out = compare(found, truth, auto={"a", "b", "c"})["auto_accepted"]
+    assert out == {"total": 3, "equal_to_a_reference_feature": 1, "inside_one_reference_feature": 2}
+
+
 def test_a_door_in_two_reference_features() -> None:
     truth = {"claim": {"1", "2"}, "review": {"2", "3"}}
     found = {"one": {"1", "2", "3"}}

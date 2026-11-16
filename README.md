@@ -142,7 +142,12 @@ Feature drafts are built by fixed rules (doors that open the same thing, or act 
 type and reach mostly the same objects; tasks join the draft that starts their process) and
 say why and what speaks against them. People decide in the **Analysis** view of the web tool
 or with `atg review` (merge, split, move, rename, exclude, shared, approve, answer); every
-decision is previewed first and replayed on every later build. An approval keeps the inputs it
+decision is previewed first and replayed on every later build. A draft can also be
+**auto-accepted** without a person when six countable checks pass: one user type and at most
+one main record type, no doubts, every door assessed and every core object described, two
+separate challenge passes that re-checked it and said it holds, nothing open or blocked, and
+at most five doors. Auto-accepted is counted apart from people's approvals, a person can still
+reject it, and any change underneath drops it back to draft. An approval keeps the inputs it
 was given on and shows as stale when they change. Use cases and test ideas exist only for
 approved features; their expected results say where they come from, and business results
 always need a person. Runtime checks need `atg authorise` for the environment, and never raise

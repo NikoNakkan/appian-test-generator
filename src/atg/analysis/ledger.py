@@ -13,7 +13,7 @@ from typing import Any
 
 from atg.agent import cards, doors
 from atg.agent.atlas import Atlas
-from atg.analysis import queue, verify
+from atg.analysis import certainty, drafts, queue, verify
 from atg.analysis.store import PARAMS, content_hash, now, open_for
 
 STATUSES = ("done", "done-partial", "blocked", "needs-human")
@@ -24,8 +24,19 @@ HOW = (
 ).format(**PARAMS)
 
 
+def _seed_challenges(atlas: Atlas) -> None:
+    """Drafts that pass every other certainty check get RUNS separate challenge items."""
+    con = open_for(atlas)
+    with con:
+        for d in drafts.build(atlas):
+            if certainty.ready_for_challenge(d):
+                for item_id in certainty.challenge_ids(d):
+                    queue.add(atlas, con, "challenge", d["key"], d["input_hash"], item_id)
+
+
 def next_item(atlas: Atlas) -> dict[str, Any]:
     queue.seed(atlas)
+    _seed_challenges(atlas)
     picked = queue.pick(atlas)
     if picked is None:
         return {"done": True, "says": "no pending items for this snapshot", **queue.resume(atlas)}
@@ -45,13 +56,13 @@ def next_item(atlas: Atlas) -> dict[str, Any]:
         ]
         out["questions"] = queue.QUESTIONS
     elif kind == "challenge":
-        from atg.analysis import drafts  # drafts uses the queue: import here, not at the top
-
         draft = drafts.card(atlas, subject)
-        out["draft"] = {k: draft.get(k) for k in ("key", "doors", "core", "shared", "claims")}
+        out["draft"] = {k: draft.get(k) for k in ("key", "doors", "core", "shared")}
         out["questions"] = {
             "C1": "Does every claim still hold when you query the map again?",
             "C2": "Is there evidence these doors are two features, or part of another?",
+            "answer": "submit a claim boundary_holds (yes or no) about one of these doors, "
+            "with the evidence you re-queried; you see the draft, not why it was grouped",
         }
     elif kind == "lifecycle":
         from atg.agent import lifecycle
@@ -97,6 +108,8 @@ def submit(atlas: Atlas, args: dict[str, Any]) -> dict[str, Any]:
         return {"error": "refused, nothing stored", "problems": problems}
     with con:
         _store(atlas, args, item_id, subject, key, str(status), claims, reads)
+    for k in ("drafts", "use_cases", "test_ideas"):  # certainty depends on finished items
+        atlas.memo.pop(k, None)
     return {"item": item_id, "status": status, "claims": len(claims), "reads": len(reads)}
 
 

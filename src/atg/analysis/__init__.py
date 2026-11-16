@@ -7,6 +7,7 @@ touches it, and every row says which snapshot it was made on.
   verify.py     checks every agent claim against the map before it is stored
   ledger.py     submit (claims + reads + status, in one transaction), questions for a person
   drafts.py     feature drafts by fixed rules, shaped by people's decisions, with doubts
+  certainty.py  when a draft is auto-accepted: six countable checks, never model confidence
   labels.py     one accounting label per object (core, shared, supporting, unreached, ...)
   review.py     people's decisions as an append-only list, replayed on every build
   decide.py     checks a decision, previews what it would change, records it

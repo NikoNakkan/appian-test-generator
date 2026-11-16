@@ -57,6 +57,7 @@ Every package's `__init__.py` docstring lists its modules in one line each: star
 | Which item the agent works on next | `analysis/queue.py` (selection is code, never the model) |
 | What a claim must prove before it is stored | `analysis/verify.py` |
 | How doors are grouped into feature drafts | `analysis/drafts.py`; people's overrides `analysis/review.py` |
+| When a draft is auto-accepted | `analysis/certainty.py` (countable checks only, never model confidence) |
 | Progress measures | `analysis/progress.py` (one item type and denominator each; no blended %) |
 | Analysis web view | `web/analysis_api.py` + `web/static/analysis.js` |
 

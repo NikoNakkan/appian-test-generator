@@ -69,9 +69,11 @@ def seed(atlas: Atlas) -> int:
     return len(_rows(atlas))
 
 
-def add(atlas: Atlas, con: sqlite3.Connection, kind: str, subject: str, h: str = "") -> None:
-    key = idempotency_key(kind, subject, h or input_hash(atlas, kind, subject))
-    item_id = f"{kind}:{subject}"
+def add(
+    atlas: Atlas, con: sqlite3.Connection, kind: str, subject: str, h: str = "", item_id: str = ""
+) -> None:
+    key = idempotency_key(kind, item_id or subject, h or input_hash(atlas, kind, subject))
+    item_id = item_id or f"{kind}:{subject}"
     old = con.execute(
         "SELECT snapshot_id, status FROM items WHERE key = ? AND snapshot_id <> ? "
         "AND status IN ('done', 'done-partial') ORDER BY snapshot_id DESC LIMIT 1",
