@@ -107,6 +107,30 @@ Command line only:
 Every ingest is a new snapshot. It prints each Layer 1 check (PASS/FAIL) and what points
 outside the export. Exit code 1 if any check fails.
 
+## Agent tools (MCP)
+
+An AI agent exploring the running app (logged in as one test user at a time) can use the map
+as a helping hand: `atg mcp --db map.db` serves it as an MCP server over stdio. Register it in
+an MCP client, e.g. `claude mcp add appian-map -- atg mcp --db /path/to/map.db`.
+
+| Tool | What it gives |
+|---|---|
+| `overview` | object counts, the doors (ways in) by kind, groups. Call first |
+| `doors` | every site page, record action, record view, user task and web API, with URL and gates |
+| `find` | from what the agent sees (a URL, a title, text on a screen, a name) to ids |
+| `card` | one object or door: uses, used by, doors that reach it, gates, what it changes, decisions, gaps |
+| `neighbours` | links one step out |
+| `process` | tasks and who gets them, and test paths covering every gateway option once, with what each changes |
+| `who` / `visible_to` | the gates on the way to something; everything one group can reach |
+| `record` / `coverage` | the agent's findings per user (seen, matches, differs, hidden, refused, broken) and what is left |
+
+Gates are read from page, record action and record view visibility and from screen SAIL:
+group checks (also through constants that hold a group), the user's own data
+(`loggedInUser()`), and profile fields. Each says how sure it is (read, resolved, unresolved).
+Gaps say what the map cannot tell (references outside the export, logic that did not parse,
+processes chosen at run time) so the agent explores those by hand. `atg ask <tool> '<json>'`
+calls one tool from the shell.
+
 ## Layer 1 checks
 
 | Check | Compares |

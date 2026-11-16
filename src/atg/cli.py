@@ -30,7 +30,20 @@ def main(argv: list[str] | None = None) -> int:
     srv = sub.add_parser("serve", help="open the local web tool")
     srv.add_argument("--db", type=Path, default=Path("map.db"))
     srv.add_argument("--port", type=int, default=8777)
+    for name, help_ in (
+        ("mcp", "serve the map to an AI agent over MCP (stdio)"),
+        ("ask", "call one agent tool and print its JSON"),
+    ):
+        p = sub.add_parser(name, help=help_)
+        p.add_argument("--db", type=Path, default=Path("map.db"))
+        p.add_argument("--snapshot", type=int, help="default: the latest import")
+        if name == "ask":
+            p.add_argument("tool")
+            p.add_argument("args", nargs="?", default="{}", help='JSON, e.g. {"query": "Claims"}')
     args = parser.parse_args(argv)
+
+    if args.cmd in ("mcp", "ask"):
+        return _agent(args)
 
     if args.cmd == "changes":
         return _changes(store.connect(args.db), args.head, args.base)
@@ -78,6 +91,24 @@ def _changes(con: sqlite3.Connection, head: int | None, base: int | None) -> int
     for kind, counts in r["summary"].items():
         print(f"  {kind + 's':9} " + ", ".join(f"{n} {v}" for v, n in sorted(counts.items())))
     return 0
+
+
+def _agent(args: argparse.Namespace) -> int:
+    import json
+
+    from atg.agent import atlas, mcp, tools
+
+    if not args.db.exists():
+        print(f"no map at {args.db}: run atg ingest first", file=sys.stderr)
+        return 2
+    con = store.connect(args.db)
+    sid = args.snapshot or mcp.latest(con)
+    if args.cmd == "mcp":
+        mcp.serve(con, sid)
+        return 0
+    out = tools.call(atlas.load(con, sid), args.tool, json.loads(args.args))
+    print(json.dumps(out, indent=1))
+    return 1 if "error" in out else 0
 
 
 def _print_external(con: sqlite3.Connection, sid: int) -> None:

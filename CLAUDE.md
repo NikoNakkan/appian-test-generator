@@ -17,6 +17,8 @@ export folder/zip
        ├─ testgen/     test data, screens, form fields, UAT scenarios, page URLs
        ├─ regression/  what changed between two imports, which tests rerun
        ├─ approvals.py feature approval through an Excel sheet
+       ├─ agent/       the map as tools for an exploring AI agent (cards, find, who, findings),
+       │               served over MCP by `atg mcp`
        └─ web/         local web tool: server + one *_api module per view + static/ UI
   sail/  the SAIL language (parser, printer, Designer form, phrases, buttons, fields),
          used by layers/, testgen/ and web/
@@ -45,6 +47,9 @@ Every package's `__init__.py` docstring lists its modules in one line each: star
 | Map schema | `store.py` (tables below) |
 | Test fixture (made-up export) | `tests/demo/spec.py` (objects), `xml.py`, `process.py` |
 | Who may call the web tool | `web/guard.py` |
+| A tool for the exploring agent | `agent/tools.py` (registry) + a module in `agent/` |
+| Gates (who may see/do what) | `agent/gates.py` (SAIL), `agent/doors.py` (pages, actions, views, tasks) |
+| What a process or button changes | `agent/effects.py`, `agent/cards.py` |
 
 ## The map (SQLite)
 
@@ -60,7 +65,8 @@ points), `paths` / `path_stats`, `entry_points`, `features` / `feature_members`,
 - Python 3.12, `from __future__ import annotations`, fully typed (`mypy --strict`), ruff
   (line length 100). Files stay at or under 250 lines: split by responsibility before that.
 - Module docstring first: what it does and the XML or data shape it reads.
-- Read the map only through `mapdb.py`; write it only in `store.py` and the layer runners.
+- Read the map only through `mapdb.py` (the agent package through its `Atlas`); write it only
+  in `store.py`, the layer runners and `agent/ledger.py` (the findings table).
 - `web/` may import everything; nothing outside `web/` imports `web/` (except `cli.py`).
 - No private (`_name`) imports across modules: make a helper public where it belongs.
 - Names and labels are shown exactly as in the export (often Spanish); UI text is English.
@@ -79,6 +85,8 @@ points), `paths` / `path_stats`, `entry_points`, `features` / `feature_members`,
 .venv/Scripts/python -m tests.demo out/demo       # write the demo export (--next: 3 edits)
 .venv/Scripts/atg ingest out/demo --db map.db
 .venv/Scripts/atg serve --db map.db --port 8777
+.venv/Scripts/atg ask --db map.db find '{"query": "Claims"}'   # one agent tool, printed
+.venv/Scripts/atg mcp --db map.db                 # the agent tools as an MCP server (stdio)
 ```
 
 After changing anything under `read/`, re-import (`atg ingest`) so `map.db` has the new facts.

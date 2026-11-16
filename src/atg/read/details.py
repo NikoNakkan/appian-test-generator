@@ -54,7 +54,12 @@ def object_details(inner: Element, obj_type: str, pm: Element | None = None) -> 
     elif obj_type == "recordType":
         d.update(record_type(inner))
         d["views"] = [
-            {"name": child_text(v, "nameExpr"), "expression": child_text(v, "uiExpr")}
+            {
+                "name": child_text(v, "nameExpr"),
+                "expression": child_text(v, "uiExpr"),
+                "stub": child_text(v, "urlStub"),
+                "visibility": child_text(v, "visibilityExpr"),
+            }
             for v in descendants(inner, "detailViewCfg")
         ]
     elif obj_type == "processModel" and pm is not None:
@@ -62,9 +67,27 @@ def object_details(inner: Element, obj_type: str, pm: Element | None = None) -> 
         meta = child(pm, "meta")
         desc = child(meta, "desc") if meta is not None else None
         d["description"] = d["description"] or _first_value(desc)
+    if obj_type == "site":
+        d["pages"] = site_pages(inner)
     if obj_type not in {"rule", "interface", "constant", "processModel"}:
         d["settings"] = settings(inner)
     return d
+
+
+def site_pages(site: Element) -> list[Details]:
+    """Each page with where it opens and who may see it (the gate, as written)."""
+    out = []
+    for page in descendants(site, "page"):
+        ui = child(page, "uiObject")
+        out.append(
+            {
+                "name": child_text(page, "staticName"),
+                "stub": child_text(page, "urlStub"),
+                "target": attr(ui, "uuid") if ui is not None else "",
+                "visibility": child_text(page, "visibilityExpr"),
+            }
+        )
+    return out
 
 
 def xsd_fields(schema: Element) -> list[Details]:

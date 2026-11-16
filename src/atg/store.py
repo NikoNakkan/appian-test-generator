@@ -59,6 +59,9 @@ CREATE TABLE IF NOT EXISTS outside_entries (
 CREATE TABLE IF NOT EXISTS feature_approvals (
   key TEXT PRIMARY KEY, decision TEXT, name TEXT, approver TEXT, approved_on TEXT,
   row_hash TEXT);
+CREATE TABLE IF NOT EXISTS findings (
+  id INTEGER PRIMARY KEY, snapshot_id INTEGER, user TEXT, object TEXT, result TEXT, note TEXT,
+  created_at TEXT);
 CREATE TABLE IF NOT EXISTS object_details (snapshot_id INTEGER, uuid TEXT, details TEXT);
 CREATE TABLE IF NOT EXISTS node_details (
   snapshot_id INTEGER, pm_uuid TEXT, gui_id INTEGER, details TEXT);
