@@ -13,6 +13,7 @@
     <button data-view="tests">Tests</button>
     <button data-view="app">App</button>
     <button data-view="changes">Changes</button>
+    <button data-view="analysis">Analysis</button>
   </nav>
   <div class="bar-end">
     <select id="snapshot" aria-label="Snapshot"></select>
@@ -54,6 +55,10 @@
   <section class="view" data-view="changes" aria-label="Changes">
     <div class="page wide" id="chg-page"></div>
   </section>
+
+  <section class="view" data-view="analysis" aria-label="Analysis">
+    <div class="page wide" id="an-page"></div>
+  </section>
 </main>
 
 <aside class="side-panel" id="panel" hidden aria-label="Details">
@@ -77,6 +82,7 @@
 <script src="testpage.js"></script>
 <script src="browse.js"></script>
 <script src="changes.js"></script>
+<script src="analysis.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

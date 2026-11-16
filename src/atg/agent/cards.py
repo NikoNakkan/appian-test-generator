@@ -77,7 +77,14 @@ def card(atlas: Atlas, key: str) -> Card:
 
 def door_ref(d: dict[str, Any]) -> dict[str, Any]:
     gated = [g["says"] for g in d["gates"]]
-    return {"id": d["id"], "kind": d["kind"], "name": d["name"], "url": d["url"], "gates": gated}
+    return {
+        "id": d["id"],
+        "kind": d["kind"],
+        "trigger": d["trigger"],
+        "name": d["name"],
+        "url": d["url"],
+        "gates": gated,
+    }
 
 
 def _decisions(atlas: Atlas, key: str) -> list[str]:

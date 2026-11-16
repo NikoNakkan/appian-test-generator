@@ -1,27 +1,21 @@
 """The tools an exploring agent calls. Every tool returns a small JSON object.
 
 Start with overview(), then find() on what you see (a URL or a title), card() on a hit, and
-follow uses / used_by / reached_from. Record what you saw with record(); coverage() says what
-is left. Ids are object UUIDs or door ids (page:..., action:..., view:..., task:..., api:...).
+follow uses / used_by / reached_from. To work through the app: resume(), then next_item() and
+submit() until nothing is left; progress() shows the honest counts. Record what you saw in a
+running app with record(); coverage() says what is left. Ids are object UUIDs or door ids
+(page:..., action:..., view:..., task:..., api:..., start:...).
 """
 
 from __future__ import annotations
 
 from collections import Counter
-from collections.abc import Callable
-from dataclasses import dataclass
 from typing import Any
 
-from atg.agent import cards, doors, find, ledger, process, who
+from atg.agent import cards, doors, find, ledger, process, who, worktools
 from atg.agent.atlas import Atlas
 
-
-@dataclass(frozen=True)
-class Tool:
-    name: str
-    description: str
-    params: dict[str, str]  # name -> description; a trailing "?" in the name marks optional
-    run: Callable[[Atlas, dict[str, Any]], dict[str, Any]]
+Tool = worktools.Tool
 
 
 def _overview(atlas: Atlas, _: dict[str, Any]) -> dict[str, Any]:
@@ -53,8 +47,12 @@ def _process(atlas: Atlas, a: dict[str, Any]) -> dict[str, Any]:
     key = a["id"]
     if atlas.type(key) != "processModel":
         return {"error": f"{key} is not a process model in this export"}
-    return {"id": key, "name": atlas.name(key), **process.summary(atlas, key),
-            **process.covering_paths(atlas, key)}  # fmt: skip
+    return {
+        "id": key,
+        "name": atlas.name(key),
+        **process.summary(atlas, key),
+        **process.covering_paths(atlas, key),
+    }
 
 
 def _doors(atlas: Atlas, a: dict[str, Any]) -> dict[str, Any]:
@@ -65,29 +63,79 @@ def _doors(atlas: Atlas, a: dict[str, Any]) -> dict[str, Any]:
 
 TOOLS = [
     Tool("overview", "The app at a glance: counts, doors, groups. Call first.", {}, _overview),
-    Tool("doors", "Every way in (site pages, record actions, record views, user tasks, web APIs) "
-         "with URL and gates.", {"kind?": "only this kind, e.g. 'site page'"}, _doors),
-    Tool("find", "Look up what you see: a URL, a page or action title, a label, a name.",
-         {"query": "URL or text", "kind?": "only this type or door kind"},
-         lambda at, a: find.find(at, a["query"], a.get("kind", ""))),
-    Tool("card", "Everything about one object or door: uses, used by, gates, changes, decisions, "
-         "gaps.", {"id": "object UUID or door id"}, lambda at, a: cards.card(at, a["id"])),
-    Tool("neighbours", "Links one step out from an object.",
-         {"id": "object UUID", "direction?": "uses, used_by or both", "type?": "object type"},
-         _neighbours),
-    Tool("process", "A process: tasks, and test paths that cover every gateway option once, with "
-         "what each path changes.", {"id": "process model UUID"}, _process),
-    Tool("who", "Who may reach an object or door, and through which doors.",
-         {"id": "object UUID or door id"}, lambda at, a: who.who(at, a["id"])),
-    Tool("visible_to", "What one group can reach, and what does not depend on groups.",
-         {"group": "group name or UUID"}, lambda at, a: who.visible_to(at, a["group"])),
-    Tool("record", "Write down what you saw as one user: " + ", ".join(ledger.RESULTS) + ".",
-         {"user": "test user or persona", "id": "object UUID or door id",
-          "result": "one of " + ", ".join(ledger.RESULTS), "note?": "what you saw"},
-         lambda at, a: ledger.record(at, a["user"], a["id"], a["result"], a.get("note", ""))),
-    Tool("coverage", "What is seen, what is left, what differed (for one user or all).",
-         {"user?": "test user or persona"}, lambda at, a: ledger.coverage(at, a.get("user", ""))),
-]  # fmt: skip
+    Tool(
+        "doors",
+        "Every way in (site pages, record actions, record views, user tasks, web APIs) "
+        "with URL and gates.",
+        {"kind?": "only this kind, e.g. 'site page'"},
+        _doors,
+    ),
+    Tool(
+        "find",
+        "Look up what you see: a URL, a page or action title, a label, a name.",
+        {"query": "URL or text", "kind?": "only this type or door kind"},
+        lambda at, a: find.find(at, a["query"], a.get("kind", "")),
+    ),
+    Tool(
+        "card",
+        "Everything about one object or door: uses, used by, gates, changes, decisions, gaps.",
+        {"id": "object UUID or door id"},
+        lambda at, a: cards.card(at, a["id"]),
+    ),
+    Tool(
+        "neighbours",
+        "Links one step out from an object.",
+        {"id": "object UUID", "direction?": "uses, used_by or both", "type?": "object type"},
+        _neighbours,
+    ),
+    Tool(
+        "process",
+        "A process: tasks, and test paths that cover every gateway option once, with "
+        "what each path changes.",
+        {"id": "process model UUID"},
+        _process,
+    ),
+    Tool(
+        "who",
+        "Who may reach an object or door, and through which doors.",
+        {"id": "object UUID or door id"},
+        lambda at, a: who.who(at, a["id"]),
+    ),
+    Tool(
+        "visible_to",
+        "What one group can reach, and what does not depend on groups.",
+        {"group": "group name or UUID"},
+        lambda at, a: who.visible_to(at, a["group"]),
+    ),
+    Tool(
+        "record",
+        "Write down what you saw as one user: " + ", ".join(ledger.RESULTS) + ".",
+        {
+            "user": "test user or persona",
+            "id": "object UUID or door id",
+            "result": "one of " + ", ".join(ledger.RESULTS),
+            "note?": "what you saw",
+            "environment?": "authorised environment name",
+            "claim?": "id of the claim checked",
+        },
+        lambda at, a: ledger.record(
+            at,
+            a["user"],
+            a["id"],
+            a["result"],
+            a.get("note", ""),
+            a.get("environment", ""),
+            str(a.get("claim", "")),
+        ),
+    ),
+    Tool(
+        "coverage",
+        "What is seen, what is left, what differed (for one user or all).",
+        {"user?": "test user or persona"},
+        lambda at, a: ledger.coverage(at, a.get("user", "")),
+    ),
+    *worktools.TOOLS,
+]
 BY_NAME = {t.name: t for t in TOOLS}
 
 

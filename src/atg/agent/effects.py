@@ -11,7 +11,7 @@ import re
 from atg import mapdb
 from atg.agent.atlas import Atlas
 
-_SET_FIELD = re.compile(
+SET_FIELD = re.compile(
     r'#"urn:appian:record-field:v\d+:[0-9a-f-]{36}/([0-9a-f-]{36})"\s*,\s*"([^"]*)"'
 )
 _TOKEN = re.compile(
@@ -77,5 +77,5 @@ def node_effects(atlas: Atlas, pm: str) -> dict[int, list[str]]:
 
 def _statuses(atlas: Atlas, code: str) -> list[str]:
     return [
-        f'sets {atlas.names.fields.get(f, "a field")} to "{v}"' for f, v in _SET_FIELD.findall(code)
+        f'sets {atlas.names.fields.get(f, "a field")} to "{v}"' for f, v in SET_FIELD.findall(code)
     ]

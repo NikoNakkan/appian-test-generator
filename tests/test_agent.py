@@ -1,12 +1,10 @@
-"""The agent tools on the demo, with gates added the way real apps write them: a page gated
-through a constant that holds a group, a related action gated by a group named directly, and
-a screen that shows only the user's own claims."""
+"""The agent tools on the demo plus gates, role maps, a timer and a message process
+(tests/agentdemo.py)."""
 
 from __future__ import annotations
 
 import io
 import json
-import shutil
 import sqlite3
 from pathlib import Path
 from typing import Any
@@ -16,47 +14,14 @@ import pytest
 from atg import store
 from atg.agent import atlas, mcp, tools
 from atg.layers.pipeline import run_layers
-from tests.conftest import demo_export, single_root
+from tests import agentdemo
+from tests.conftest import single_root
 from tests.demo import spec
-from tests.demo.xml import constant, content
-
-C_GROUP = spec.cid(85)
-OWN = f"{spec.fn('loggedInUser')}()"
-
-
-def _gate(folder: Path) -> None:
-    (folder / f"content/{C_GROUP}.xml").write_text(
-        content("constant", "EXP_APPROVERS_GROUP", C_GROUP, constant("Group", spec.G_APPROVERS)),
-        encoding="utf-8",
-    )
-    site = folder / f"site/{spec.SITE}.xml"
-    head, tail = site.read_text(encoding="utf-8").split("<urlStub>dashboard</urlStub>")
-    gate = (
-        f'<visibilityExpr><![CDATA[a!isUserMemberOfGroup({OWN}, #"{C_GROUP}")]]></visibilityExpr>'
-    )
-    site.write_text(f"{head}<urlStub>dashboard</urlStub>{gate}{tail}", encoding="utf-8")
-    rt = folder / f"recordType/{spec.RT}.xml"
-    text = rt.read_text(encoding="utf-8")
-    at = text.index(f'a:uuid="{spec.ACT_WITHDRAW}"')
-    end = text.index("<a:visibilityExpr/>", at)
-    check = f'a!isUserMemberOfGroup(loggedInUser(), #"{spec.G_EMPLOYEES}")'
-    rt.write_text(
-        text[:end] + f"<a:visibilityExpr><![CDATA[{check}]]></a:visibilityExpr>"
-        + text[end + len("<a:visibilityExpr/>"):],
-        encoding="utf-8",
-    )  # fmt: skip
-    ui = folder / f"content/{spec.UI_LIST}.xml"
-    flt = f', filters: {spec.fn("queryFilter")}(field: "owner", operator: "=", value: {OWN})'
-    text = ui.read_text(encoding="utf-8")
-    data = f"recordType: {spec.record(spec.RT)}"
-    ui.write_text(text.replace(f"{data})", f"{data}{flt})"), encoding="utf-8")
 
 
 @pytest.fixture(scope="module")
 def at(tmp_path_factory: pytest.TempPathFactory) -> atlas.Atlas:
-    folder = tmp_path_factory.mktemp("agent") / "Expense Claims"
-    shutil.copytree(demo_export(), folder)
-    _gate(folder)
+    folder = agentdemo.build(tmp_path_factory.mktemp("agent"))
     con = store.connect(folder.parent / "map.db")
     sid, results = run_layers(con, single_root(folder))
     assert all(r.ok for r in results), [r.name for r in results if not r.ok]
@@ -73,9 +38,15 @@ def test_overview_lists_every_door(at: atlas.Atlas) -> None:
     o = call(at, "overview")
     assert o["app"] == ["Expense Claims"]
     assert o["doors"] == {
-        "record list action": 1, "related action": 1, "record view": 1, "site page": 3,
-        "web API": 1, "user task": 1,
-    }  # fmt: skip
+        "record list action": 1,
+        "related action": 1,
+        "record view": 1,
+        "site page": 3,
+        "web API": 1,
+        "user task": 1,
+        "timer start": 1,
+        "message start": 1,
+    }
     assert o["doors_with_a_gate"] == 3  # dashboard, withdraw, the review task
 
 
@@ -84,9 +55,15 @@ def test_gates_resolve_constants_and_own_data(at: atlas.Atlas) -> None:
     assert [d["name"] for d in dash] == ["Dashboard"]
     gates = call(at, "who", id=dash[0]["id"])["gates"]
     assert gates == [
-        {"kind": "group", "groups": ["EXP_Approvers"], "says": "only members of EXP_Approvers",
-         "confidence": "resolved", "where": "whole"}
-    ]  # fmt: skip
+        {
+            "kind": "group",
+            "groups": ["EXP_Approvers"],
+            "says": "only members of EXP_Approvers",
+            "confidence": "resolved",
+            "where": "whole",
+            "guard": "visibility",
+        }
+    ]
     withdraw = call(at, "who", id=f"action:{spec.ACT_WITHDRAW}")["gates"]
     assert [(g["groups"], g["confidence"]) for g in withdraw] == [(["EXP_Employees"], "read")]
     lst = call(at, "card", id=spec.UI_LIST)
@@ -117,18 +94,28 @@ def test_process_paths_cover_every_option_once(at: atlas.Atlas) -> None:
     assert p["options"] == 4 and len(p["paths"]) == 3 and not p["not_reachable"]
     assert p["tasks"] == [{"task": "Review claim", "for": ["EXP_Approvers"]}]
     changes = {c for path in p["paths"] for c in path["changes"]}
-    assert {'sets status to "Approved"', "calls integration EXP_PayClaim",
-            "starts process EXP_Notify", "gives a task to EXP_Approvers"} <= changes  # fmt: skip
+    assert {
+        'sets status to "Approved"',
+        "calls integration EXP_PayClaim",
+        "starts process EXP_Notify",
+        "gives a task to EXP_Approvers",
+    } <= changes
     assert call(at, "process", id=spec.UI_LIST)["error"]
 
 
 def test_record_and_coverage(at: atlas.Atlas) -> None:
     assert call(at, "record", user="employee1", id="x", result="nope")["error"]
     call(at, "record", user="employee1", id=f"action:{spec.ACT_NEW}", result="matches")
-    call(at, "record", user="employee1", id=f"action:{spec.ACT_WITHDRAW}", result="differs",
-         note="shown although gated")  # fmt: skip
+    call(
+        at,
+        "record",
+        user="employee1",
+        id=f"action:{spec.ACT_WITHDRAW}",
+        result="differs",
+        note="shown although gated",
+    )
     cov = call(at, "coverage", user="employee1")
-    assert (cov["doors"], cov["doors_seen"]) == (8, 2)
+    assert (cov["doors"], cov["doors_seen"]) == (10, 2)
     assert [d["id"] for d in cov["differs_or_broken"]] == [f"action:{spec.ACT_WITHDRAW}"]
     assert call(at, "coverage", user="someone else")["doors_seen"] == 0
 
@@ -144,11 +131,15 @@ def test_mcp_over_stdio(at: atlas.Atlas) -> None:
         {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
         {"jsonrpc": "2.0", "method": "notifications/initialized"},
         {"jsonrpc": "2.0", "id": 2, "method": "tools/list"},
-        {"jsonrpc": "2.0", "id": 3, "method": "tools/call",
-         "params": {"name": "find", "arguments": {"query": "Claims"}}},
+        {
+            "jsonrpc": "2.0",
+            "id": 3,
+            "method": "tools/call",
+            "params": {"name": "find", "arguments": {"query": "Claims"}},
+        },
         {"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "card"}},
         {"jsonrpc": "2.0", "id": 5, "method": "nope"},
-    ]  # fmt: skip
+    ]
     out = io.StringIO()
     mcp.serve(at.con, at.sid, io.StringIO("\n".join(json.dumps(m) for m in msgs)), out)
     replies = [json.loads(line) for line in out.getvalue().splitlines()]

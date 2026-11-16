@@ -15,7 +15,16 @@ from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 from atg import approvals, store
-from atg.web import api, changes_api, designer_api, features_api, guard, paths_api, tests_api
+from atg.web import (
+    analysis_api,
+    api,
+    changes_api,
+    designer_api,
+    features_api,
+    guard,
+    paths_api,
+    tests_api,
+)
 from atg.web.jobs import Jobs
 
 STATIC = Path(__file__).parent / "static"
@@ -100,6 +109,10 @@ def make_handler(app: App) -> type[BaseHTTPRequestHandler]:
                 app.uploads.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(data)
                 return self._json(app.jobs.start(target).to_json(), HTTPStatus.ACCEPTED)
+            if (m := _SNAP.match(url.path)) and m.group(2) == "decision":
+                body = json.loads(self._body() or b"{}")
+                sid = int(m.group(1))
+                return self._db(lambda c: analysis_api.decision(c, sid, body))
             if (m := _SNAP.match(url.path)) and m.group(2) == "features-sheet":
                 con = app.con()
                 try:
@@ -133,6 +146,7 @@ def make_handler(app: App) -> type[BaseHTTPRequestHandler]:
                 "test-data": lambda c: tests_api.test_data(
                     c, sid, query.get("uuid", ""), _int(query.get("path"))
                 ),
+                **analysis_api.views(sid, query),
                 "changes": lambda c: changes_api.changes(c, sid, _int(query.get("base"))),
                 "object-diff": lambda c: changes_api.object_diff(
                     c, sid, _int(query.get("base")) or 0, query.get("uuid", "")

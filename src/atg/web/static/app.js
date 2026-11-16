@@ -1,6 +1,6 @@
-// Shell: three views (Tests, App, Changes), the snapshot picker, and the header buttons.
+// Shell: four views (Tests, App, Changes, Analysis), the snapshot picker, and the header buttons.
 // Health checks and Import open in the side panel; with no snapshot yet, the welcome page shows.
-const VIEWS = { tests: () => renderTests(), app: () => renderBrowse(), changes: () => renderChanges() };
+const VIEWS = { tests: () => renderTests(), app: () => renderBrowse(), changes: () => renderChanges(), analysis: () => renderAnalysis() };
 
 function show(view) {
   const wanted = view in VIEWS ? view : "tests";

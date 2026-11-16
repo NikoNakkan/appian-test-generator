@@ -17,8 +17,10 @@ export folder/zip
        ├─ testgen/     test data, screens, form fields, UAT scenarios, page URLs
        ├─ regression/  what changed between two imports, which tests rerun
        ├─ approvals.py feature approval through an Excel sheet
-       ├─ agent/       the map as tools for an exploring AI agent (cards, find, who, findings),
-       │               served over MCP by `atg mcp`
+       ├─ agent/       the map as tools for an exploring AI agent (cards, find, who, doors,
+       │               actors, reach, lifecycle), served over MCP by `atg mcp`
+       ├─ analysis/    kept apart in <map>.analysis.db: work queue, verified agent claims,
+       │               feature drafts, people's decisions, use cases, test ideas, progress
        └─ web/         local web tool: server + one *_api module per view + static/ UI
   sail/  the SAIL language (parser, printer, Designer form, phrases, buttons, fields),
          used by layers/, testgen/ and web/
@@ -50,6 +52,13 @@ Every package's `__init__.py` docstring lists its modules in one line each: star
 | A tool for the exploring agent | `agent/tools.py` (registry) + a module in `agent/` |
 | Gates (who may see/do what) | `agent/gates.py` (SAIL), `agent/doors.py` (pages, actions, views, tasks) |
 | What a process or button changes | `agent/effects.py`, `agent/cards.py` |
+| What starts a process (timer, message, API) | `agent/triggers.py` |
+| Permission (role maps) / shown vs allowed | `read/security.py` (reading), `agent/security.py` |
+| Which item the agent works on next | `analysis/queue.py` (selection is code, never the model) |
+| What a claim must prove before it is stored | `analysis/verify.py` |
+| How doors are grouped into feature drafts | `analysis/drafts.py`; people's overrides `analysis/review.py` |
+| Progress measures | `analysis/progress.py` (one item type and denominator each; no blended %) |
+| Analysis web view | `web/analysis_api.py` + `web/static/analysis.js` |
 
 ## The map (SQLite)
 
@@ -66,7 +75,11 @@ points), `paths` / `path_stats`, `entry_points`, `features` / `feature_members`,
   (line length 100). Files stay at or under 250 lines: split by responsibility before that.
 - Module docstring first: what it does and the XML or data shape it reads.
 - Read the map only through `mapdb.py` (the agent package through its `Atlas`); write it only
-  in `store.py`, the layer runners and `agent/ledger.py` (the findings table).
+  in `store.py`, the layer runners and `agent/ledger.py` (runtime findings).
+- Three layers never mix: imported facts (the map), agent claims (`analysis/`, verified, each
+  with a level: stated, inferred, statically supported), people's decisions (append-only).
+  The agent has no tool that approves, merges, splits or authorises: only people decide.
+- Runtime findings never raise a static progress measure.
 - `web/` may import everything; nothing outside `web/` imports `web/` (except `cli.py`).
 - No private (`_name`) imports across modules: make a helper public where it belongs.
 - Names and labels are shown exactly as in the export (often Spanish); UI text is English.
@@ -87,6 +100,9 @@ points), `paths` / `path_stats`, `entry_points`, `features` / `feature_members`,
 .venv/Scripts/atg serve --db map.db --port 8777
 .venv/Scripts/atg ask --db map.db find '{"query": "Claims"}'   # one agent tool, printed
 .venv/Scripts/atg mcp --db map.db                 # the agent tools as an MCP server (stdio)
+.venv/Scripts/atg review approve <draft key> --by NAME --preview   # a person's decision
+.venv/Scripts/atg authorise --env test --mode observe --by NAME    # allow runtime checks
+.venv/Scripts/python -m scripts.evaluate_grouping --db map.db --reference ref.json
 ```
 
 After changing anything under `read/`, re-import (`atg ingest`) so `map.db` has the new facts.

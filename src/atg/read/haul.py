@@ -12,7 +12,7 @@ from xml.etree import ElementTree as ET
 from xml.etree.ElementTree import Element
 
 from atg.model import AppObject, Reference, RefKind, Unknown, UnknownKind
-from atg.read import details, entry, process, records
+from atg.read import details, entry, process, records, security
 from atg.read.hashing import content_hash
 from atg.read.known import (
     CONTENT_SUBTYPES,
@@ -84,6 +84,8 @@ def _identify(root: Element, root_tag: str, rel: str) -> tuple[AppObject | None,
     obj = AppObject(uuid=uuid, type=obj_type, name=name, path=rel, haul_root=root_tag)
     pm = process.find_pm(root) if root_tag == "processModelHaul" else None
     obj.details = details.object_details(inner, obj_type, pm)
+    if roles := security.role_map(root):
+        obj.details["roles"] = roles
     if obj_type in {"rule", "interface"} and (tests := records.saved_tests(root)):
         obj.details["saved_tests"] = tests
     definition = child(inner, "definition")

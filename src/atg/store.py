@@ -79,6 +79,8 @@ _ADDED_COLUMNS = [
     ("nodes", "writes", "TEXT"),
     ("nodes", "calls", "TEXT"),
     ("nodes", "assignees", "TEXT"),
+    ("findings", "claim", "TEXT"),
+    ("findings", "environment", "TEXT"),
 ]
 
 

@@ -46,8 +46,12 @@ def group_checks(atlas: Atlas, text: str) -> list[dict[str, Any]]:
     return out
 
 
-def gates_in(atlas: Atlas, text: str, where: str = "whole") -> list[dict[str, Any]]:
-    """The gates a piece of SAIL contains. where: whole (the object) or part (of a screen)."""
+def gates_in(
+    atlas: Atlas, text: str, where: str = "whole", guard: str = "visibility"
+) -> list[dict[str, Any]]:
+    """The gates a piece of SAIL contains. where: whole (the object) or part (of a screen).
+    guard: visibility (shows or hides, not proof of refusal), record security, or in-flow
+    (logic inside a process). Permission from object security is read in agent/security.py."""
     out: list[dict[str, Any]] = []
     for g in group_checks(atlas, text):
         names = g["groups"]
@@ -72,7 +76,7 @@ def gates_in(atlas: Atlas, text: str, where: str = "whole") -> list[dict[str, An
                 "confidence": "read",
             }
         )
-    return [{**g, "where": where} for g in out]
+    return [{**g, "where": where, "guard": guard} for g in out]
 
 
 def _without_group_checks(text: str) -> str:

@@ -40,10 +40,15 @@ def main(argv: list[str] | None = None) -> int:
         if name == "ask":
             p.add_argument("tool")
             p.add_argument("args", nargs="?", default="{}", help='JSON, e.g. {"query": "Claims"}')
+    from atg.analysis import cli as analysis_cli
+
+    analysis_cli.add_parsers(sub)
     args = parser.parse_args(argv)
 
     if args.cmd in ("mcp", "ask"):
         return _agent(args)
+    if args.cmd in ("review", "authorise"):
+        return analysis_cli.run(args)
 
     if args.cmd == "changes":
         return _changes(store.connect(args.db), args.head, args.base)

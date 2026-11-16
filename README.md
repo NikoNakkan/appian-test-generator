@@ -123,6 +123,31 @@ an MCP client, e.g. `claude mcp add appian-map -- atg mcp --db /path/to/map.db`.
 | `process` | tasks and who gets them, and test paths covering every gateway option once, with what each changes |
 | `who` / `visible_to` | the gates on the way to something; everything one group can reach |
 | `record` / `coverage` | the agent's findings per user (seen, matches, differs, hidden, refused, broken) and what is left |
+| `census` / `actors` / `access_check` / `lifecycle` | what the map holds and cannot see; every kind of actor; doors shown to people who may not use them; record types against create, read, update, delete |
+| `resume` / `next_item` / `submit` | the work queue: code picks the next door or object, the agent answers fixed questions, every claim is checked against the map before it is kept |
+| `drafts` / `draft` / `use_cases` / `test_ideas` / `progress` | feature proposals, use cases and test ideas for approved features, and the honest counts |
+
+### Working through a large app
+
+The agent starts every session with `resume`, then repeats `next_item` and `submit`. Code, not
+the model, picks the order: doors that reach the most unread objects first, then doors that
+write, then rare triggers (timers, APIs, messages). Each door comes with six fixed questions
+(what it starts or writes, which records and statuses, who gets tasks, what guards it, which
+doors do the same, what leaves the app). A claim is refused unless every object it cites exists,
+every quote matches the stored source and every path follows real links; the agent may only
+claim "stated", "inferred" or "statically supported". Work is kept in `<map>.analysis.db`, next
+to the map, so a re-import never touches it and unchanged work is reused.
+
+Feature drafts are built by fixed rules (doors that open the same thing, or act on one record
+type and reach mostly the same objects; tasks join the draft that starts their process) and
+say why and what speaks against them. People decide in the **Analysis** view of the web tool
+or with `atg review` (merge, split, move, rename, exclude, shared, approve, answer); every
+decision is previewed first and replayed on every later build. An approval keeps the inputs it
+was given on and shows as stale when they change. Use cases and test ideas exist only for
+approved features; their expected results say where they come from, and business results
+always need a person. Runtime checks need `atg authorise` for the environment, and never raise
+a static progress measure. `python -m scripts.evaluate_grouping` scores the drafts against a
+grouping people made on their own.
 
 Gates are read from page, record action and record view visibility and from screen SAIL:
 group checks (also through constants that hold a group), the user's own data

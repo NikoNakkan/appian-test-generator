@@ -79,6 +79,9 @@ def _by_url(atlas: Atlas, url: str) -> list[dict[str, Any]]:
         out += [_short(d) for d in all_doors if f"/type/{stub}/" in d["url"]]
     elif m := _SITE_URL.search(url):
         site, page = m.groups()
-        out += [_short(d) for d in all_doors if f"/sites/{site}/" in d["url"]
-                and (not page or d["url"].endswith(f"/page/{page}"))]  # fmt: skip
+        out += [
+            _short(d)
+            for d in all_doors
+            if f"/sites/{site}/" in d["url"] and (not page or d["url"].endswith(f"/page/{page}"))
+        ]
     return list({d["id"]: d for d in out}.values())
