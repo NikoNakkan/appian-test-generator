@@ -7,6 +7,8 @@ function openPanel(html, entry) {
   $("#panel-body").innerHTML = html;
   $("#panel").hidden = false;
   $("#panel").scrollTop = 0;
+  // Reopening what is already on top (after a decision, say) replaces it, so Back goes back.
+  if (entry && JSON.stringify(panel.stack.at(-1)) === JSON.stringify(entry)) panel.stack.pop();
   if (entry) panel.stack.push(entry);
   $("#panel-back").hidden = panel.stack.length < 2;
 }
@@ -80,5 +82,6 @@ document.addEventListener("DOMContentLoaded", () => {
     else if (prev?.kind === "diff") showDiff(prev.uuid);
     else if (prev?.kind === "health") openHealth();
     else if (prev?.kind === "import") openImport();
+    else if (prev?.kind === "draft") openDraft(prev.key);
   });
 });
