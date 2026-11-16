@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from atg.agent import cards, doors
+from atg.agent import cards, doors, route
 from atg.agent.atlas import Atlas
 from atg.analysis import brief, certainty, drafts, queue, reviews, verify
 from atg.analysis.store import PARAMS, content_hash, now, open_for
@@ -57,6 +57,7 @@ def next_item(atlas: Atlas, draft: str = "") -> dict[str, Any]:
         door = doors.by_id(atlas, subject) or {}
         opens = (door.get("opens") or {}).get("id", "")
         out["door"] = door
+        out["start_here"] = route.route(atlas, door) if door else None
         out["one_hop"] = [
             {
                 **atlas.ref(u),
@@ -69,6 +70,7 @@ def next_item(atlas: Atlas, draft: str = "") -> dict[str, Any]:
     elif kind == "challenge":
         dc = drafts.card(atlas, subject)
         out["draft"] = {k: dc.get(k) for k in ("key", "doors", "core", "shared")}
+        out["start_here"] = [x["route"] for x in dc.get("doors", [])]
         out["questions"] = {
             "C1": "Does every claim still hold when you query the map again?",
             "C2": "Is there evidence these doors are two features, or part of another?",
@@ -89,6 +91,8 @@ def next_item(atlas: Atlas, draft: str = "") -> dict[str, Any]:
         out["questions"] = {"R1": "Why might nothing reach each of these objects?"}
     else:
         out["card"] = cards.card(atlas, subject)
+        if kind == "describe_object":
+            out["start_here"] = route.for_object(atlas, subject)
     return out
 
 

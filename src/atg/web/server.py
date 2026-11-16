@@ -42,8 +42,9 @@ def _int(value: str | None) -> int | None:
 
 
 class App:
-    def __init__(self, db: Path) -> None:
+    def __init__(self, db: Path, base_url: str = "") -> None:
         self.db = db
+        self.base_url = base_url
         self.uploads = db.parent / ".atg-uploads"
         self.jobs = Jobs(db)
         self.answers = Answers(db)
@@ -149,7 +150,7 @@ def make_handler(app: App) -> type[BaseHTTPRequestHandler]:
                 "test-data": lambda c: tests_api.test_data(
                     c, sid, query.get("uuid", ""), _int(query.get("path"))
                 ),
-                **analysis_api.views(sid, query),
+                **analysis_api.views(sid, query, app.base_url),
                 "changes": lambda c: changes_api.changes(c, sid, _int(query.get("base"))),
                 "object-diff": lambda c: changes_api.object_diff(
                     c, sid, _int(query.get("base")) or 0, query.get("uuid", "")
@@ -212,7 +213,7 @@ def make_handler(app: App) -> type[BaseHTTPRequestHandler]:
     return Handler
 
 
-def serve(db: Path, port: int) -> None:
-    server = ThreadingHTTPServer(("127.0.0.1", port), make_handler(App(db)))
+def serve(db: Path, port: int, base_url: str = "") -> None:
+    server = ThreadingHTTPServer(("127.0.0.1", port), make_handler(App(db, base_url)))
     print(f"Appian test generator running at http://127.0.0.1:{port}  (map: {db})")
     server.serve_forever()

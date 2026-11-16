@@ -52,9 +52,14 @@ def handle(at: atlas_mod.Atlas, msg: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def serve(
-    con: sqlite3.Connection, sid: int, inp: TextIO = sys.stdin, out: TextIO = sys.stdout
+    con: sqlite3.Connection,
+    sid: int,
+    inp: TextIO = sys.stdin,
+    out: TextIO = sys.stdout,
+    base_url: str = "",
 ) -> None:
     at = atlas_mod.load(con, sid)
+    at.memo["base_url"] = base_url
     for stream in (inp, out):  # Windows consoles default to a local code page
         reconfigure = getattr(stream, "reconfigure", None)
         if reconfigure is not None:

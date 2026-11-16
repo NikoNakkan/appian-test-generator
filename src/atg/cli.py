@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sqlite3
 import sys
 from pathlib import Path
@@ -11,6 +12,8 @@ from atg import store
 from atg.layers.pipeline import run_layers
 from atg.read.select import UnsupportedVersionError
 from atg.read.source import find_roots
+
+_BASE_HELP = "your Appian address (https://...), so routes give full links"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -30,6 +33,7 @@ def main(argv: list[str] | None = None) -> int:
     srv = sub.add_parser("serve", help="open the local web tool")
     srv.add_argument("--db", type=Path, default=Path("map.db"))
     srv.add_argument("--port", type=int, default=8777)
+    srv.add_argument("--base-url", default=os.environ.get("ATG_BASE_URL", ""), help=_BASE_HELP)
     for name, help_ in (
         ("mcp", "serve the map to an AI agent over MCP (stdio)"),
         ("ask", "call one agent tool and print its JSON"),
@@ -37,6 +41,7 @@ def main(argv: list[str] | None = None) -> int:
         p = sub.add_parser(name, help=help_)
         p.add_argument("--db", type=Path, default=Path("map.db"))
         p.add_argument("--snapshot", type=int, help="default: the latest import")
+        p.add_argument("--base-url", default=os.environ.get("ATG_BASE_URL", ""), help=_BASE_HELP)
         if name == "ask":
             p.add_argument("tool")
             p.add_argument("args", nargs="?", default="{}", help='JSON, e.g. {"query": "Claims"}')
@@ -55,7 +60,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "serve":
         from atg.web.server import serve
 
-        serve(args.db.resolve(), args.port)
+        serve(args.db.resolve(), args.port, args.base_url)
         return 0
 
     roots = find_roots(args.export)
@@ -109,9 +114,11 @@ def _agent(args: argparse.Namespace) -> int:
     con = store.connect(args.db)
     sid = args.snapshot or mcp.latest(con)
     if args.cmd == "mcp":
-        mcp.serve(con, sid)
+        mcp.serve(con, sid, base_url=args.base_url)
         return 0
-    out = tools.call(atlas.load(con, sid), args.tool, json.loads(args.args))
+    at = atlas.load(con, sid)
+    at.memo["base_url"] = args.base_url
+    out = tools.call(at, args.tool, json.loads(args.args))
     print(json.dumps(out, indent=1))
     return 1 if "error" in out else 0
 

@@ -77,7 +77,7 @@ async function openDraft(key) {
         ${c.next ? `<div>→ ${esc(c.next)}</div>` : ""}</div>`).join(""))}
     ${section("Why these belong together", d.why.map((w) => `<div>${esc(w)}</div>`).join(""))}
     ${section("Doubts", d.against.map((w) => `<div>${esc(w)}</div>`).join(""))}
-    ${section("Doors", d.doors.map((x) => `<div>${esc(x.kind)}: <b>${esc(x.name)}</b>
+    ${section("Doors", d.doors.map((x) => `<div class="check-row">${esc(x.kind)}: <b>${esc(x.name)}</b>${x.route ? `<div class="hint">Log in as ${esc(x.route.log_in_as)}${x.route.open ? ` · ${esc(x.route.open)}` : ""}</div><ol class="route">${x.route.steps.map((s) => `<li>${esc(s)}</li>`).join("")}</ol>` : ""}
       ${d.doors.length > 1 ? `<button data-an-split="${esc(x.id)}">Split out</button>` : ""}</div>`).join(""))}
     ${section("Core", refs(d.core))}${section("Shared with other features", refs(d.shared))}
     ${section("Data and groups it uses", refs(d.supporting))}

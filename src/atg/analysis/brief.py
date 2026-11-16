@@ -11,7 +11,7 @@ import re
 from collections import Counter
 from typing import Any
 
-from atg.agent import cards, process
+from atg.agent import cards, process, route
 from atg.agent.atlas import Atlas
 from atg.agent.effects import node_effects
 from atg.analysis import drafts, queue
@@ -63,7 +63,7 @@ def _door(atlas: Atlas, door_id: str) -> dict[str, Any]:
         **cards.door_ref(d),
         "in": d.get("in", ""),
         "opens": (d.get("opens") or {}).get("name", ""),
-        "permission": d.get("permission", ""),
+        "start_here": route.route(atlas, d) if d else None,
     }
 
 

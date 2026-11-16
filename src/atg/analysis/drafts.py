@@ -181,6 +181,13 @@ def _draft(
     }
 
 
+def _route(atlas: Atlas, door_id: str) -> dict[str, Any] | None:
+    from atg.agent import route
+
+    door = doors.by_id(atlas, door_id)
+    return route.route(atlas, door) if door else None
+
+
 def _main_record_types(atlas: Atlas, mine: set[str]) -> set[str]:
     """Record types reached, minus children of another reached type (claim lines of a claim)."""
     found = {u for u in mine if atlas.type(u) == "recordType"}
@@ -223,6 +230,7 @@ def card(atlas: Atlas, key: str) -> dict[str, Any]:
     )
     return {
         **d,
+        "doors": [{**x, "route": _route(atlas, x["id"])} for x in d["doors"]],
         "core": [atlas.ref(u) for u in d["core"]],
         "shared": [atlas.ref(u) for u in d["shared"]],
         "supporting": [atlas.ref(u) for u in d["supporting"]],

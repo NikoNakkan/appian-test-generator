@@ -34,7 +34,14 @@ def cut(items: list[Any], limit: int = LIMIT) -> list[Any]:
 def card(atlas: Atlas, key: str) -> Card:
     door = doors.by_id(atlas, key)
     if door is not None:
-        return {**door, "type": "door", "next": "card(opens.id) for what it opens"}
+        from atg.agent import route
+
+        return {
+            **door,
+            "type": "door",
+            "start_here": route.route(atlas, door),
+            "next": "card(opens.id) for what it opens",
+        }
     if key not in atlas.objects:
         return {"id": key, "error": "not in this export (it may live in another app)"}
     kind, name = atlas.objects[key]

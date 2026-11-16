@@ -128,6 +128,15 @@ an MCP client, e.g. `claude mcp add appian-map -- atg mcp --db /path/to/map.db`.
 | `drafts` / `draft` / `use_cases` / `test_ideas` / `progress` | feature proposals, use cases and test ideas for approved features, and the honest counts |
 | `brief` / `playbook` | everything about one draft at once (screens with labels, processes, data, rules, who, related drafts, open work, naming hints); instructions for the lead and reviewer agents |
 
+### Where each item starts
+
+Every door and every work item carries `start_here`: who to log in as (the groups that may
+both see and use it), the full address, the clicks ("Open the record list", "Open a record",
+"Open X in Related Actions"), the record state it needs, and for a user task the doors that
+start its process first. Timers and message starts say there is nothing to click. Give your
+Appian address once with `--base-url https://...` (or `ATG_BASE_URL`) on `atg mcp`,
+`atg ask` and `atg serve`; without it the routes hold paths to put after your address.
+
 ### Naming and reviewing feature drafts
 
 Drafts made by rules have technical names. An agent reviews each one: a **lead** agent reads

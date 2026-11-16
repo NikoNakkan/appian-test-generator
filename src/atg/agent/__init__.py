@@ -11,6 +11,7 @@ lifecycle.py record types against create, read, update, delete and statuses set
 gates.py    who may see or do something (groups, own data, profile), through constants
 effects.py  what a process node or button changes (records, tasks, processes, integrations)
 process.py  a process as a diagram summary plus paths that cover every gateway option
+route.py    how to get to a door in the running app: log in as, address, clicks, what first
 doors.py    the ways a user gets in (pages, record actions, record views) with their gates
 cards.py    one card per object: uses, used by, gates, effects, decisions, gaps
 find.py     from what the agent sees (URL, text) to cards

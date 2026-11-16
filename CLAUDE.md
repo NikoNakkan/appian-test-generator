@@ -53,6 +53,7 @@ Every package's `__init__.py` docstring lists its modules in one line each: star
 | Gates (who may see/do what) | `agent/gates.py` (SAIL), `agent/doors.py` (pages, actions, views, tasks) |
 | What a process or button changes | `agent/effects.py`, `agent/cards.py` |
 | What starts a process (timer, message, API) | `agent/triggers.py` |
+| How to reach a door in the running app (start_here) | `agent/route.py` |
 | Permission (role maps) / shown vs allowed | `read/security.py` (reading), `agent/security.py` |
 | Which item the agent works on next | `analysis/queue.py` (selection is code, never the model) |
 | What a claim must prove before it is stored | `analysis/verify.py` |

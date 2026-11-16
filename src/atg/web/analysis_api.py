@@ -23,9 +23,16 @@ def _questions(at: atlas.Atlas) -> list[dict[str, Any]]:
     ]
 
 
-def views(sid: int, query: dict[str, str]) -> dict[str, Callable[[sqlite3.Connection], Any]]:
+def views(
+    sid: int, query: dict[str, str], base_url: str = ""
+) -> dict[str, Callable[[sqlite3.Connection], Any]]:
     def on(fn: Callable[[atlas.Atlas], Any]) -> Callable[[sqlite3.Connection], Any]:
-        return lambda con: fn(atlas.load(con, sid))
+        def run(con: sqlite3.Connection) -> Any:
+            at = atlas.load(con, sid)
+            at.memo["base_url"] = base_url
+            return fn(at)
+
+        return run
 
     return {
         "analysis": on(lambda at: {**progress.measures(at), "items": queue.resume(at)["items"]}),
