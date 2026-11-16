@@ -3,12 +3,12 @@
 const SAIL_TOKENS = new RegExp([
   String.raw`(?<comment>/\*[\s\S]*?\*/)`,
   String.raw`(?<string>"(?:[^"]|"")*")`,
-  String.raw`(?<variable>\b(?:local|ri|pv|ac|fv|fn|rv|rf|rsp|pp|tp|cons)![\w.]+)`,
-  String.raw`(?<func>\b(?:a|rule|recordType|type|processModel|group|webApi)![\w.]+)`,
+  String.raw`(?<variable>\b(?:local|ri|pv|ac|fv|fn|rv|rf|rsp|pp|tp|cons)![\p{L}\p{N}_.]+)`,
+  String.raw`(?<func>\b(?:a|rule|recordType|type|processModel|group|webApi)![\p{L}\p{N}_.]+)`,
   String.raw`(?<keyword>\b(?:if|and|or|not|true|false|null|choose|index|with|load)\b)`,
   String.raw`(?<number>\b\d+(?:\.\d+)?\b)`,
-  String.raw`(?<key>\b[A-Za-z_]\w*(?=\s*:(?!=)))`,
-].join("|"), "g");
+  String.raw`(?<key>(?<![\p{L}\p{N}_])[\p{L}_][\p{L}\p{N}_]*(?=\s*:(?!=)))`,
+].join("|"), "gu"); // any alphabet (Greek too)
 
 function highlightSail(text) {
   let out = "", pos = 0;

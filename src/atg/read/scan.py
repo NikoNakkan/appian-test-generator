@@ -15,7 +15,7 @@ from atg.read.known import PLATFORM_TYPE_NAMESPACES, VERSION_TAGS
 from atg.read.xmlutil import UUID_RE, child_text, local
 
 CANONICAL_RE = re.compile(r'#"([^"\n]{1,400})"')
-TYPE_BANG_RE = re.compile(r"type!\{([^}]+)\}([A-Za-z0-9_]+)")
+TYPE_BANG_RE = re.compile(r"type!\{([^}]+)\}(\w+)")
 # #"urn:appian:function:v1:a:currency" is a built-in function, like SYSTEM_SYSRULES_*.
 _PLATFORM_PREFIXES = ("SYSTEM_", "urn:appian:function:")
 # Urns whose first UUID is a record type: record-type, record-field, user-filter (rt/filter)...

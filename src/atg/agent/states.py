@@ -6,16 +6,31 @@ from __future__ import annotations
 import re
 
 from atg.agent.atlas import Atlas
+from atg.textfold import fold
 
 _CMP = re.compile(
     r'(?:#"urn:appian:record-field:v\d+:[0-9a-f-]{36}/([0-9a-f-]{36})"\]?'
     r"|\b(?:pv|ri|local|rv|fv|ac)!(?:[\w.]+\.)?(\w+))\s*(=|<>)\s*\"([^\"]*)\""
 )
-_STATUSISH = ("status", "state", "estado", "stage", "phase", "step", "decision")
+# English, Spanish and Greek (compared without case or accents).
+_STATUSISH = (
+    "status",
+    "state",
+    "estado",
+    "stage",
+    "phase",
+    "step",
+    "decision",
+    "κατασταση",
+    "σταδιο",
+    "φαση",
+    "βημα",
+    "αποφαση",
+)
 
 
 def statusish(name: str) -> bool:
-    low = name.lower()
+    low = fold(name)
     return any(w in low for w in _STATUSISH)
 
 

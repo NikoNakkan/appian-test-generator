@@ -44,13 +44,15 @@ field: IDENT | QUOTED | CANON | PREFIXED | NUMBER | STRING
      | "{" args? "}"                  -> list_literal
      | "(" expr ")"                   -> paren
 
+// Names may use any alphabet (Greek, accented Latin): [^\W\d] is a letter or _, \w any letter,
+// digit or _.
 // A keyword argument or dictionary key, including its colon: label:, local!x:, 'hitPolicy':
-KEY.3: /(?:#"[^"]*"|(?:[A-Za-z_][A-Za-z0-9_]*!)?(?:[A-Za-z_][A-Za-z0-9_]*|'[^'\n]*'))\s*:(?!=)/
+KEY.3: /(?:#"[^"]*"|(?:[^\W\d]\w*!)?(?:[^\W\d]\w*|'[^'\n]*'))\s*:(?!=)/
 CANON.2: /#"[^"]*"/
-PREFIXED.2: /[A-Za-z_][A-Za-z0-9_]*![A-Za-z_][A-Za-z0-9_]*/
+PREFIXED.2: /[^\W\d]\w*![^\W\d]\w*/
 STRING: /"(?:[^"]|"")*"/
 QUOTED: /'[^'\n]*'/
-IDENT: /[A-Za-z_][A-Za-z0-9_]*/
+IDENT: /[^\W\d]\w*/
 NUMBER: /\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|\.\d+/
 COMP: /<=|>=|<>|=|<|>/
 ADDOP: /[+-]/

@@ -19,6 +19,7 @@ from atg.agent import doors, process
 from atg.agent.atlas import Atlas
 from atg.agent.effects import node_effects
 from atg.agent.gates import gates_in
+from atg.agent.states import statusish
 from atg.sail import actions
 from atg.sail.explain import phrase
 
@@ -129,8 +130,7 @@ def _record(atlas: Atlas, key: str, c: Card) -> None:
 
 
 def _statusish(name: str) -> bool:
-    low = name.lower()
-    return any(w in low for w in ("status", "state", "estado", "stage", "phase"))
+    return statusish(name) and "step" not in name.lower() and "decision" not in name.lower()
 
 
 def gaps(atlas: Atlas, key: str) -> list[str]:

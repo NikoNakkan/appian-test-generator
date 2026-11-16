@@ -8,9 +8,11 @@ from __future__ import annotations
 
 import re
 from typing import Any
+from urllib.parse import unquote
 
 from atg.agent import doors
 from atg.agent.atlas import Atlas
+from atg.textfold import words
 
 _LITERAL = re.compile(r'"([^"\\#\n]{2,80})"')
 _RECORD_URL = re.compile(r"records/(?:type|item)/([^/?#]+)")
@@ -18,7 +20,7 @@ _SITE_URL = re.compile(r"sites/([^/?#]+)(?:/page/([^/?#]+))?")
 
 
 def _norm(s: str) -> str:
-    return re.sub(r"[^a-z0-9]+", " ", s.lower()).strip()
+    return words(unquote(s))
 
 
 def _score(query: str, text: str) -> int:
@@ -70,6 +72,7 @@ def _short(d: dict[str, Any]) -> dict[str, Any]:
 
 
 def _by_url(atlas: Atlas, url: str) -> list[dict[str, Any]]:
+    url = unquote(url)  # browsers show Greek or accented page names percent-encoded
     all_doors = doors.doors(atlas)
     out = [_short(d) for d in all_doors if d["url"] and d["url"].split(" ")[0] in url]
     if "tasks" in url and not out:
