@@ -17,7 +17,7 @@ from typing import Any
 
 from atg.agent import doors, reach
 from atg.agent.atlas import Atlas
-from atg.analysis import certainty, review
+from atg.analysis import certainty, review, reviews
 from atg.analysis.store import content_hash, digest, open_for
 
 SUPPORTING = frozenset({"recordType", "datatype", "group", "connectedSystem", "dataStore"})
@@ -109,6 +109,7 @@ def build(atlas: Atlas) -> list[dict[str, Any]]:
         _draft(atlas, sorted(m), g.why[root], by_id, reached, shared, rules)
         for root, m in g.members.items()
     ]
+    reviews.apply(atlas, out, rules["names"])
     unique_names(out, by_id, rules["names"])
     certainty.apply(atlas, out)
     atlas.memo["drafts"] = sorted(out, key=lambda d: d["name"].lower())

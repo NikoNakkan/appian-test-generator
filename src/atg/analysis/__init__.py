@@ -8,6 +8,8 @@ touches it, and every row says which snapshot it was made on.
   ledger.py     submit (claims + reads + status, in one transaction), questions for a person
   drafts.py     feature drafts by fixed rules, shaped by people's decisions, with doubts
   certainty.py  when a draft is auto-accepted: six countable checks, never model confidence
+  brief.py      everything a reviewer needs about one draft, in one answer
+  reviews.py    the agent's review of a draft: plain title, summary, who, merge suggestions
   labels.py     one accounting label per object (core, shared, supporting, unreached, ...)
   review.py     people's decisions as an append-only list, replayed on every build
   decide.py     checks a decision, previews what it would change, records it

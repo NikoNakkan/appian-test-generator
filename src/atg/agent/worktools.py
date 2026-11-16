@@ -12,10 +12,10 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from atg.agent import actors, census, doors, lifecycle, security
+from atg.agent import actors, census, doors, lifecycle, playbook, security
 from atg.agent.atlas import Atlas
 from atg.agent.cards import cut
-from atg.analysis import drafts, ledger, progress, queue, testideas, usecases
+from atg.analysis import brief, drafts, ledger, progress, queue, testideas, usecases
 
 
 @dataclass(frozen=True)
@@ -42,15 +42,16 @@ def _work(name: str) -> Callable[[Atlas, dict[str, Any]], dict[str, Any]]:
         if name == "resume":
             return queue.resume(at)
         if name == "next_item":
-            return ledger.next_item(at)
+            return ledger.next_item(at, str(a.get("draft", "")))
         if name == "progress":
             return progress.measures(at)
         if name == "drafts":
             return {
                 "drafts": cut(
                     [
-                        {k: d[k] for k in ("key", "name", "status", "actors", "against")}
+                        {k: d[k] for k in ("key", "name", "status", "reviewed", "summary")}
                         | {"doors": len(d["doors"]), "core": len(d["core"])}
+                        | {"suggest": d["suggest"], "against": d["against"]}
                         for d in drafts.build(at)
                     ],
                     80,
@@ -99,9 +100,23 @@ TOOLS = [
     ),
     Tool(
         "next_item",
-        "Take the next work item (chosen by code) with its briefing and questions.",
-        {},
+        "Take the next work item (chosen by code) with its briefing and questions. With "
+        "draft, only that draft's items, ending with its review.",
+        {"draft?": "a draft key: work on this draft only"},
         _work("next_item"),
+    ),
+    Tool(
+        "brief",
+        "Everything about one feature draft at once: screens with labels, processes and "
+        "tasks, data, rules, who may use it, related drafts, open work, naming hints.",
+        {"key": "draft key or one of its door ids"},
+        lambda at, a: brief.brief(at, a["key"]),
+    ),
+    Tool(
+        "playbook",
+        "How to review feature drafts: role lead (hands out drafts) or reviewer (one draft).",
+        {"role": "lead or reviewer"},
+        lambda at, a: playbook.playbook(str(a.get("role", "lead"))),
     ),
     Tool(
         "submit",

@@ -34,11 +34,13 @@ async function anDrafts() {
   if (!anState.drafts.length) return empty("No drafts yet.");
   const shown = anState.drafts.filter((d) => anState.show === "all" || d.status === anState.show);
   const count = (s) => anState.drafts.filter((d) => s === "all" || d.status === s).length;
-  return `<div class="card"><h3>Feature drafts</h3><p class="sub">Proposals built by fixed rules. Auto-accepted ones passed every certainty check; the rest need a person. Open one to see why, and to approve, reject, rename, split or merge it.</p>
+  return `<div class="card"><h3>Feature drafts</h3><p class="sub">Proposals built by fixed rules, then reviewed by the agent: it names each one in plain words, says what a user does there, and suggests merges. Auto-accepted ones passed every certainty check; the rest need a person. Open one to approve, reject, rename, split or merge it.</p>
     ${segmented("an-show", SHOW.map(([v, l]) => [v, `${l} (${count(v)})`]), anState.show)}
-    ${shown.length ? table(["Draft", "Status", "Doors", "Core objects", "User types", "Doubts"], shown.map((d) => [
-      `<a href="#" data-an-draft="${esc(d.key)}">${esc(d.name)}</a>`, pill(d.status, STATUS_PILL[d.status]),
-      fmt(d.doors.length), fmt(d.core.length), esc(d.actors.join(" | ")), esc(d.against.join("; "))])) : empty("None with this status.")}</div>`;
+    ${shown.length ? table(["Feature", "Status", "Agent review", "Suggestions", "Doors"], shown.map((d) => [
+      `<a href="#" data-an-draft="${esc(d.key)}"><b>${esc(d.name)}</b></a>${d.summary ? `<div>${esc(d.summary)}</div>` : ""}
+        ${d.rule_name !== d.name ? `<div class="hint">${esc(d.rule_name)}</div>` : ""}`,
+      pill(d.status, STATUS_PILL[d.status]), d.reviewed ? pill("reviewed", "ok") : pill("not yet", "idle"),
+      fmt(d.suggest.length), fmt(d.doors.length)])) : empty("None with this status.")}</div>`;
 }
 
 async function anQuestions() {
@@ -66,6 +68,10 @@ async function openDraft(key) {
   const refs = (xs) => xs.map((x) => `<a href="#" data-panel="${esc(x.id)}">${esc(x.name)}</a>`).join(", ");
   const others = anState.drafts.filter((x) => x.key !== d.key);
   openPanel(`<div class="panel-head">${pill(d.status, STATUS_PILL[d.status])}<h3>${esc(d.name)}</h3></div>
+    ${d.reviewed ? section("What it is (agent's review)", `<p>${esc(d.summary)}</p>${d.actor_says ? `<p class="hint">Who: ${esc(d.actor_says)}</p>` : ""}
+      <p class="hint">Code name: ${esc(d.rule_name)}</p>`) : section("What it is", `<p class="hint">Not reviewed by the agent yet. Code name: ${esc(d.rule_name)}</p>`)}
+    ${section("Agent suggestions", d.suggest.map((s) => `<div>${pill(s.kind.replaceAll("_", " "))} ${esc(nameOf(s.target) || "")} <span class="hint">${esc(s.target ? s.says.slice(s.target.length).replace(/^[:\s]+/, "") : s.says)}</span>
+      ${s.kind === "same_feature_as" && s.target && nameOf(s.target) ? `<button data-an-accept="${esc(s.target)}">Merge them</button>` : ""}</div>`).join(""))}
     ${section("Certainty checks", (d.certainty || []).map((c) => `<div>${c.ok ? pill("pass", "ok") : pill("fail", "bad")} <b>${esc(c.check)}</b> <span class="hint">${esc(c.why)}</span></div>`).join(""))}
     ${section("Why these belong together", d.why.map((w) => `<div>${esc(w)}</div>`).join(""))}
     ${section("Doubts", d.against.map((w) => `<div>${esc(w)}</div>`).join(""))}
@@ -80,6 +86,10 @@ async function openDraft(key) {
       <button data-an-rename="${esc(d.key)}">Rename</button>
       ${others.length ? `<select id="an-merge" aria-label="Merge with">${others.map((o) => `<option value="${esc(o.doors[0].id)}">${esc(o.name)}</option>`).join("")}</select>
       <button data-an-merge="${esc(d.doors[0].id)}">Merge with</button>` : ""}</div>`, { kind: "draft", key });
+}
+
+function nameOf(key) {
+  return anState.drafts.find((x) => x.key === key)?.name;
 }
 
 async function decideUI(body, again) {
@@ -110,13 +120,14 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   $("#an-page").addEventListener("change", (e) => { if (e.target.id === "an-who") localStorage.setItem("atg-reviewer", e.target.value.trim()); });
   $("#panel-body").addEventListener("click", (e) => {
-    const t = e.target.closest("[data-an-approve],[data-an-reject],[data-an-rename],[data-an-split],[data-an-merge]");
+    const t = e.target.closest("[data-an-approve],[data-an-reject],[data-an-rename],[data-an-split],[data-an-merge],[data-an-accept]");
     if (!t) return;
     const key = panel.stack.at(-1)?.key;
     const reopen = () => openDraft(key);
     if (t.dataset.anApprove) decideUI({ kind: "approve", target: t.dataset.anApprove }, reopen);
     else if (t.dataset.anReject) decideUI({ kind: "reject", target: t.dataset.anReject, reason: "needs a person" }, reopen);
     else if (t.dataset.anRename) { const name = prompt("New name"); if (name) decideUI({ kind: "rename", target: t.dataset.anRename, payload: { name } }, reopen); }
+    else if (t.dataset.anAccept) decideUI({ kind: "merge", target: key, payload: { with: t.dataset.anAccept }, reason: "agent suggested it" }, reopen);
     else if (t.dataset.anSplit) decideUI({ kind: "split", target: t.dataset.anSplit }, () => openDraft(t.dataset.anSplit));
     else decideUI({ kind: "merge", target: t.dataset.anMerge, payload: { with: $("#an-merge").value } }, reopen);
   });

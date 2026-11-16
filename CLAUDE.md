@@ -58,6 +58,8 @@ Every package's `__init__.py` docstring lists its modules in one line each: star
 | What a claim must prove before it is stored | `analysis/verify.py` |
 | How doors are grouped into feature drafts | `analysis/drafts.py`; people's overrides `analysis/review.py` |
 | When a draft is auto-accepted | `analysis/certainty.py` (countable checks only, never model confidence) |
+| What a draft reviewer is given / how a review is checked | `analysis/brief.py`, `analysis/reviews.py` |
+| Instructions for the lead and reviewer agents | `agent/playbook.py` (served by the playbook tool) |
 | Progress measures | `analysis/progress.py` (one item type and denominator each; no blended %) |
 | Analysis web view | `web/analysis_api.py` + `web/static/analysis.js` |
 

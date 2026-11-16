@@ -19,28 +19,32 @@ from typing import Any
 
 from atg.agent import doors
 from atg.agent.atlas import Atlas
+from atg.analysis.reviews import PREDICATES as REVIEW_PREDICATES
 
-PREDICATES = frozenset(
-    {
-        "starts",
-        "writes",
-        "deletes",
-        "reads",
-        "sets_status",
-        "assigns_task_to",
-        "guarded_by",
-        "shown_only_to",
-        "same_as",
-        "leaves_app",
-        "purpose",
-        "part_of",
-        "actor_goal",
-        "unreached_because",
-        "gap_reason",
-        "lifecycle_note",
-        "note",
-        "boundary_holds",
-    }
+PREDICATES = (
+    frozenset(
+        {
+            "starts",
+            "writes",
+            "deletes",
+            "reads",
+            "sets_status",
+            "assigns_task_to",
+            "guarded_by",
+            "shown_only_to",
+            "same_as",
+            "leaves_app",
+            "purpose",
+            "part_of",
+            "actor_goal",
+            "unreached_because",
+            "gap_reason",
+            "lifecycle_note",
+            "note",
+            "boundary_holds",
+        }
+    )
+    | REVIEW_PREDICATES
 )
 AGENT_LEVELS = frozenset({"stated", "inferred", "statically supported"})
 ALL_LEVELS = (*sorted(AGENT_LEVELS), "human-confirmed", "runtime-observed")

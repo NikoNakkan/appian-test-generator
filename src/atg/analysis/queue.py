@@ -26,7 +26,15 @@ QUESTIONS = {
     "Q5": "Which other doors start the same process or show the same screen?",
     "Q6": "What leaves the application (integration, email, document)?",
 }
-ORDER = ["assess_entry", "describe_object", "lifecycle", "classify_gap", "reconcile", "challenge"]
+ORDER = [
+    "assess_entry",
+    "describe_object",
+    "lifecycle",
+    "classify_gap",
+    "reconcile",
+    "review_draft",
+    "challenge",
+]
 CONTAINERS = frozenset(
     {"application", "folder", "rulesFolder", "processModelFolder", "knowledgeCenter", "document"}
 )
@@ -139,13 +147,19 @@ def resume(atlas: Atlas) -> dict[str, Any]:
     }
 
 
-def pick(atlas: Atlas) -> tuple[str, str, str] | None:
+def pick(atlas: Atlas, only: set[str] | None = None) -> tuple[str, str, str] | None:
+    """The next pending item; with only, just items whose subject or id is in it, and no
+    challenges (those must come from someone who did not build the view of the draft)."""
     con = open_for(atlas)
-    pending = con.execute(
-        "SELECT id, kind, subject, priority FROM items "
-        "WHERE snapshot_id = ? AND status = 'pending'",
-        (atlas.sid,),
-    ).fetchall()
+    pending = [
+        row
+        for row in con.execute(
+            "SELECT id, kind, subject, priority FROM items "
+            "WHERE snapshot_id = ? AND status = 'pending'",
+            (atlas.sid,),
+        )
+        if only is None or ((row[0] in only or row[2] in only) and row[1] != "challenge")
+    ]
     if not pending:
         return None
     done = {

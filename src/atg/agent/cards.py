@@ -58,7 +58,7 @@ def card(atlas: Atlas, key: str) -> Card:
         c["gates"] = gates_in(atlas, text, "part" if kind == "interface" else "whole")
         c["decisions"] = cut(_decisions(atlas, key), 15)
     if kind == "interface":
-        c["changes"] = cut([_action(atlas, a) for a in actions.find(text)], 15)
+        c["changes"] = cut([action_text(atlas, a) for a in actions.find(text)], 15)
     elif kind == "processModel":
         _process(atlas, key, c)
     elif kind == "recordType":
@@ -99,7 +99,7 @@ def _decisions(atlas: Atlas, key: str) -> list[str]:
     return list(seen)
 
 
-def _action(atlas: Atlas, a: actions.Action) -> str:
+def action_text(atlas: Atlas, a: actions.Action) -> str:
     parts = [f"starts process {atlas.name(u)}" for u in a.starts]
     parts += [f"writes {atlas.name(u)}" for u in a.writes]
     parts += [f"deletes {atlas.name(u)}" for u in a.deletes]

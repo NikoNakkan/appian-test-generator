@@ -126,6 +126,20 @@ an MCP client, e.g. `claude mcp add appian-map -- atg mcp --db /path/to/map.db`.
 | `census` / `actors` / `access_check` / `lifecycle` | what the map holds and cannot see; every kind of actor; doors shown to people who may not use them; record types against create, read, update, delete |
 | `resume` / `next_item` / `submit` | the work queue: code picks the next door or object, the agent answers fixed questions, every claim is checked against the map before it is kept |
 | `drafts` / `draft` / `use_cases` / `test_ideas` / `progress` | feature proposals, use cases and test ideas for approved features, and the honest counts |
+| `brief` / `playbook` | everything about one draft at once (screens with labels, processes, data, rules, who, related drafts, open work, naming hints); instructions for the lead and reviewer agents |
+
+### Naming and reviewing feature drafts
+
+Drafts made by rules have technical names. An agent reviews each one: a **lead** agent reads
+`playbook("lead")` and hands every draft without a review to a **reviewer** (a sub-agent per
+draft if the client can start them). The reviewer reads `playbook("reviewer")`, calls
+`brief(key)`, finishes the draft's open work with `next_item(draft=key)`, and answers its
+review item: a plain title (at most 8 words), what a user does there, who does it, and
+suggestions (same feature as another draft, related, split a door out). A review is refused
+unless every claim is about the draft's own doors or objects, with evidence from the map. The
+title becomes the draft's name until a person renames it; suggested merges get a "Merge them"
+button in the Analysis view, and only a person presses it. Ready-made agent files for Claude
+Code are in `agents/` (copy them into `.claude/agents/`).
 
 ### Working through a large app
 

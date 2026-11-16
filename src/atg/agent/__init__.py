@@ -18,5 +18,6 @@ who.py      who can reach what, and the reverse
 ledger.py   the agent's findings and what is still unseen
 tools.py    the tools (name, description, parameters, function)
 worktools.py tools for working through the app: queue, drafts, use cases, progress
+playbook.py how agents review feature drafts: a lead hands out drafts, one reviewer each
 mcp.py      the tools over MCP (stdio), for `atg mcp`
 """

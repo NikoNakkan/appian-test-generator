@@ -3,8 +3,9 @@
 Start with overview(), then find() on what you see (a URL or a title), card() on a hit, and
 follow uses / used_by / reached_from. To work through the app: resume(), then next_item() and
 submit() until nothing is left; progress() shows the honest counts. Record what you saw in a
-running app with record(); coverage() says what is left. Ids are object UUIDs or door ids
-(page:..., action:..., view:..., task:..., api:..., start:...).
+running app with record(); coverage() says what is left. To name and review feature drafts,
+read playbook("lead"); one reviewer per draft reads playbook("reviewer") and brief(key). Ids
+are object UUIDs or door ids (page:..., action:..., view:..., task:..., api:..., start:...).
 """
 
 from __future__ import annotations
