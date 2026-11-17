@@ -13,7 +13,8 @@ from atg.read.link import resolvable_targets
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS snapshots (
-  id INTEGER PRIMARY KEY, source TEXT, appian_version TEXT, reader TEXT, created_at TEXT);
+  id INTEGER PRIMARY KEY, source TEXT, appian_version TEXT, reader TEXT, created_at TEXT,
+  max_paths INTEGER);
 CREATE TABLE IF NOT EXISTS objects (
   snapshot_id INTEGER, uuid TEXT, type TEXT, name TEXT, path TEXT, haul_root TEXT,
   content_hash TEXT, PRIMARY KEY (snapshot_id, uuid));
@@ -45,7 +46,7 @@ CREATE TABLE IF NOT EXISTS branches (
   outcomes INTEGER, literals TEXT);
 CREATE TABLE IF NOT EXISTS paths (
   snapshot_id INTEGER, pm_uuid TEXT, path_no INTEGER, steps TEXT, decisions TEXT, calls TEXT,
-  tasks TEXT, loops INTEGER);
+  tasks TEXT, loops INTEGER, choices TEXT);
 CREATE TABLE IF NOT EXISTS path_stats (
   snapshot_id INTEGER, pm_uuid TEXT, feasible INTEGER, infeasible INTEGER, truncated INTEGER,
   loops INTEGER);
@@ -90,6 +91,8 @@ _ADDED_COLUMNS = [
     ("nodes", "assignees", "TEXT"),
     ("findings", "claim", "TEXT"),
     ("findings", "environment", "TEXT"),
+    ("paths", "choices", "TEXT"),
+    ("snapshots", "max_paths", "INTEGER"),
 ]
 
 
@@ -157,10 +160,12 @@ def _save_objects(con: sqlite3.Connection, sid: int, snap: Snapshot) -> None:
                 for (kind, target, ctx), n in refs.items()
             ],
         )
-        uses = Counter((t.token, t.use) for t in o.tokens)
+        # Totals per file and kind of use: all the UUID sweep check needs. The token column is
+        # left empty (maps imported before kept one row per token).
+        uses = Counter(t.use for t in o.tokens)
         con.executemany(
             "INSERT INTO uuid_uses VALUES (?,?,?,?,?)",
-            [(sid, o.path, tok, use.value, n) for (tok, use), n in uses.items()],
+            [(sid, o.path, None, use.value, n) for use, n in uses.items()],
         )
         con.executemany(
             "INSERT INTO nodes VALUES (?,?,?,?,?,?,?,?,?,?)",

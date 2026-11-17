@@ -7,11 +7,10 @@ should have set) are listed as "to confirm": a person approves them before a spe
 
 from __future__ import annotations
 
-import json
 import sqlite3
 from typing import Any
 
-from atg import mapdb
+from atg import mapdb, pathdb
 from atg.testgen import forms, screens, sentences, testdata, urls
 
 _TASK = "internal.17"
@@ -36,14 +35,9 @@ def path_scenario(con: sqlite3.Connection, sid: int, pm: str, no: int) -> dict[s
     if "error" in data:
         return data
     n = mapdb.names(con, sid)
-    steps_raw, decisions = (
-        json.loads(x)
-        for x in con.execute(
-            "SELECT steps, decisions FROM paths WHERE snapshot_id = ? AND pm_uuid = ? "
-            "AND path_no = ?",
-            (sid, pm, no),
-        ).fetchone()
-    )
+    stored = pathdb.read_one(con, sid, pm, no)
+    assert stored is not None  # path_data above already found it
+    steps_raw, decisions = stored.steps, stored.decisions
     nodes = {
         g: (t, lab or tn)
         for g, t, lab, tn in con.execute(

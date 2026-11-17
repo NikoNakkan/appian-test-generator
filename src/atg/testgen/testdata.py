@@ -14,7 +14,7 @@ import re
 import sqlite3
 from typing import Any
 
-from atg import mapdb
+from atg import mapdb, pathdb
 from atg.layers import feature_engine
 from atg.read.xmlutil import UUID_RE
 from atg.sail.display import Names
@@ -89,14 +89,10 @@ def _reach(con: sqlite3.Connection, sid: int, starts: set[str]) -> dict[str, set
 
 def path_data(con: sqlite3.Connection, sid: int, pm: str, path_no: int) -> dict[str, Any]:
     n = mapdb.names(con, sid)
-    row = con.execute(
-        "SELECT steps, decisions, calls FROM paths WHERE snapshot_id = ? "
-        "AND pm_uuid = ? AND path_no = ?",
-        (sid, pm, path_no),
-    ).fetchone()
+    row = pathdb.read_one(con, sid, pm, path_no)
     if row is None:
         return {"error": "No such test path."}
-    steps, decisions, calls = json.loads(row[0]), json.loads(row[1]), json.loads(row[2])
+    steps, decisions, calls = row.steps, row.decisions, row.calls
     variables = {v["name"]: v for v in mapdb.details(con, sid, pm).get("variables", [])}
     nodes = {
         g: (t, lab or tn, json.loads(d or "{}"), json.loads(a or "[]"))

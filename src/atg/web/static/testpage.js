@@ -14,14 +14,14 @@ async function showTest(kind, uuid, path) {
       ${empty("This object has no test of its own: it is part of the screens, processes or rules that use it.")}`;
     return;
   }
-  if (kind === "process" && !item.paths.some((p) => p.no === testsState.path)) testsState.path = item.paths[0].no;
+  if (kind === "process" && !(testsState.path >= 1 && testsState.path <= item.path_count)) testsState.path = 1;
   if (kind === "rule") testsState.tab = "data";
   const params = { uuid, path: kind === "process" ? testsState.path : null };
   $("#ts-page").innerHTML = `<p class="hint">Working it out…</p>`;
   const [data, scen, paths] = await Promise.all([
     api("test-data", params),
     kind === "rule" ? null : api("scenario", params),
-    kind === "process" && testCache.pm !== uuid ? api("paths", { uuid }) : testCache.paths,
+    kind === "process" ? api("paths", { uuid, path: testsState.path }) : null,
   ]);
   if (testsState.pick?.uuid !== uuid) return;
   Object.assign(testCache, { scenario: scen, pm: kind === "process" ? uuid : testCache.pm, paths });
@@ -43,7 +43,10 @@ async function showTest(kind, uuid, path) {
 }
 
 function processBlock(proc) {
-  return `<div class="path-list">${proc.paths.map((p) => `<button class="path-btn" data-path="${p.no}" aria-pressed="${p.no === testsState.path}">
+  const more = proc.path_count > proc.paths.length
+    ? `<p class="hint">Showing paths 1 to ${fmt(proc.paths.length)} of ${fmt(proc.path_count)}.
+      <label>Go to path <input type="number" min="1" max="${proc.path_count}" value="${testsState.path}" data-path-jump></label></p>` : "";
+  return `${more}<div class="path-list">${proc.paths.map((p) => `<button class="path-btn" data-path="${p.no}" aria-pressed="${p.no === testsState.path}">
       <b>Path ${p.no}</b><span>${esc(p.route)}</span>${p.tasks ? `<small>${p.tasks} user task${p.tasks > 1 ? "s" : ""}</small>` : ""}</button>`).join("")}</div>
     <div id="ts-diagram" class="diagram"></div>`;
 }
@@ -62,6 +65,10 @@ function scenarioText(s) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  $("#ts-page").addEventListener("change", (e) => {
+    const jump = e.target.closest("[data-path-jump]");
+    if (jump && +jump.value >= 1 && +jump.value <= +jump.max) showTest("process", testsState.pick.uuid, +jump.value);
+  });
   $("#ts-page").addEventListener("click", (e) => {
     const pick = testsState.pick;
     if (e.target.closest("[data-home]")) {

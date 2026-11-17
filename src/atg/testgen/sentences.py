@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import json
 import sqlite3
 from typing import Any
 
+from atg import pathdb
 from atg.testgen import urls
 
 
@@ -46,10 +46,8 @@ def how_started(con: sqlite3.Connection, sid: int, pm: str) -> str:
     parents = sorted(
         {
             owners.get(p, p)
-            for p, calls in con.execute(
-                "SELECT DISTINCT pm_uuid, calls FROM paths WHERE snapshot_id = ?", (sid,)
-            )
-            if pm in json.loads(calls)
+            for p, rows in pathdb.read_all(con, sid)
+            if any(pm in r.calls for r in rows)
         }
     )
     if parents:

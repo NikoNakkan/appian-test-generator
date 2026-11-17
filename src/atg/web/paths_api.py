@@ -6,7 +6,7 @@ import json
 import sqlite3
 from typing import Any
 
-from atg import mapdb
+from atg import mapdb, pathdb
 from atg.sail.explain import phrase
 
 
@@ -19,7 +19,8 @@ def _names(con: sqlite3.Connection, sid: int) -> dict[str, tuple[str, str]]:
     }
 
 
-def paths(con: sqlite3.Connection, sid: int, pm: str) -> dict[str, Any]:
+def paths(con: sqlite3.Connection, sid: int, pm: str, no: int | None = None) -> dict[str, Any]:
+    """The test paths of a process, or only path `no` (a process can have 20,000)."""
     labels = {
         g: lab or tn
         for g, lab, tn in con.execute(
@@ -35,16 +36,16 @@ def paths(con: sqlite3.Connection, sid: int, pm: str) -> dict[str, Any]:
         (sid, pm),
     ).fetchone()
     out = []
-    for no, steps, decisions, calls, tasks, loops in con.execute(
-        "SELECT path_no, steps, decisions, calls, tasks, loops FROM paths "
-        "WHERE snapshot_id = ? AND pm_uuid = ? ORDER BY path_no",
-        (sid, pm),
-    ):
+    if no is None:
+        found = pathdb.read(con, sid, pm)
+    else:
+        found = [p for p in [pathdb.read_one(con, sid, pm, no)] if p is not None]
+    for p in found:
         out.append(
             {
-                "no": no,
-                "steps": json.loads(steps),
-                "loops": loops,
+                "no": p.no,
+                "steps": p.steps,
+                "loops": p.loops,
                 "decisions": [
                     {
                         **d,
@@ -54,11 +55,11 @@ def paths(con: sqlite3.Connection, sid: int, pm: str) -> dict[str, Any]:
                         "needs": [p for p in [phrase(d["must_be_true"], n)] if p]
                         + [phrase(c, n, negate=True) for c in d["must_be_false"]],
                     }
-                    for d in json.loads(decisions)
+                    for d in p.decisions
                 ],
                 "calls": [
                     {"uuid": c, "name": objects.get(c, ("", "outside this export"))[1]}
-                    for c in json.loads(calls)
+                    for c in p.calls
                 ],
                 "tasks": [
                     {
@@ -66,7 +67,7 @@ def paths(con: sqlite3.Connection, sid: int, pm: str) -> dict[str, Any]:
                         "label": labels.get(n, ""),
                         "groups": [mapdb.assignee_name(a, objects) for a in groups],
                     }
-                    for n, groups in json.loads(tasks)
+                    for n, groups in p.tasks
                 ],
             }
         )
@@ -83,21 +84,18 @@ def test_users(con: sqlite3.Connection, sid: int) -> list[dict[str, Any]]:
     """Every group a path's user task goes to, with how many tasks and processes need it."""
     objects = _names(con, sid)
     need: dict[str, dict[str, Any]] = {}
-    seen: set[tuple[str, int, str]] = set()
-    for pm, tasks in con.execute("SELECT pm_uuid, tasks FROM paths WHERE snapshot_id = ?", (sid,)):
-        for node, groups in json.loads(tasks):
-            for g in groups or ["(assigned without a group)"]:
-                if (pm, node, g) in seen:
-                    continue
-                seen.add((pm, node, g))
-                who = (
-                    mapdb.assignee_name(g, objects)
-                    if g.startswith(("_", "=")) or g in objects
-                    else g
-                )
-                entry = need.setdefault(who, {"group": who, "tasks": 0, "processes": set()})
-                entry["tasks"] += 1
-                entry["processes"].add(objects.get(pm, ("", pm))[1])
+    on_paths = {
+        (pm, node, g)
+        for pm, rows in pathdb.read_all(con, sid)
+        for r in rows
+        for node, groups in r.tasks
+        for g in groups or ["(assigned without a group)"]
+    }
+    for pm, _node, g in on_paths:
+        who = mapdb.assignee_name(g, objects) if g.startswith(("_", "=")) or g in objects else g
+        entry = need.setdefault(who, {"group": who, "tasks": 0, "processes": set()})
+        entry["tasks"] += 1
+        entry["processes"].add(objects.get(pm, ("", pm))[1])
     return sorted(
         ({**e, "processes": sorted(e["processes"]), "users_needed": 2} for e in need.values()),
         key=lambda e: -int(e["tasks"]),

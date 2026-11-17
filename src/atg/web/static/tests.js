@@ -27,14 +27,14 @@ function renderTestList() {
     ? `<div class="group-h"><span>${title}</span><span>${items.length}</span></div>${items.map((x) => row(kind, x, meta(x))).join("")}` : "";
   $("#ts-list").innerHTML = [
     group("screen", "Screens", d.screens.filter(keep), (s) => esc(s.how.join(", "))),
-    group("process", "Processes", d.processes.filter(keep), (p) => `${p.paths.length} path${p.paths.length > 1 ? "s" : ""}`),
+    group("process", "Processes", d.processes.filter(keep), (p) => `${fmt(p.path_count)} path${p.path_count > 1 ? "s" : ""}`),
     group("rule", "Rules", d.rules.filter(keep), (r) => `${r.inputs} input${r.inputs === 1 ? "" : "s"}`),
   ].join("") || `<p class="hint pad">No tests match.</p>`;
 }
 
 async function renderTestsHome() {
   const d = testsState.data, users = await api("test-users");
-  const paths = d.processes.reduce((n, p) => n + p.paths.length, 0);
+  const paths = d.processes.reduce((n, p) => n + p.path_count, 0);
   const counts = testsState.features.reduce((c, f) => ((c[f.approval.status] = (c[f.approval.status] || 0) + 1), c), {});
   $("#ts-page").innerHTML = `
     <div class="page-head"><h2>Tests for ${esc(current().name)}</h2>

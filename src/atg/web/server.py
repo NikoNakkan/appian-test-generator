@@ -134,7 +134,9 @@ def make_handler(app: App) -> type[BaseHTTPRequestHandler]:
                 "processes": lambda c: api.processes(c, sid),
                 "process": lambda c: api.process(c, sid, query.get("uuid", "")),
                 "decisions": lambda c: paths_api.decisions(c, sid, query.get("uuid", "")),
-                "paths": lambda c: paths_api.paths(c, sid, query.get("uuid", "")),
+                "paths": lambda c: paths_api.paths(
+                    c, sid, query.get("uuid", ""), _int(query.get("path"))
+                ),
                 "test-users": lambda c: paths_api.test_users(c, sid),
                 "features": lambda c: approvals.feature_list(c, sid),
                 "feature": lambda c: features_api.feature(c, sid, query.get("key", "")),

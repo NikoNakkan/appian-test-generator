@@ -3,10 +3,10 @@ says which nodes and gateway options exist; the stored paths must cover all of t
 
 from __future__ import annotations
 
-import json
 import sqlite3
 from collections import deque
 
+from atg import pathdb
 from atg.layers.checks.layer1 import CheckResult
 
 _GATEWAYS = ("core.3", "core.4", "core.5")
@@ -26,12 +26,10 @@ def run(con: sqlite3.Connection, sid: int) -> list[CheckResult]:
         reach, options = _reachable(con, sid, pm)
         steps: set[int] = set()
         taken: set[tuple[int, int]] = set()
-        rows = con.execute(
-            "SELECT steps, decisions FROM paths WHERE snapshot_id = ? AND pm_uuid = ?", (sid, pm)
-        ).fetchall()
-        for s, d in rows:
-            steps |= set(json.loads(s))
-            taken |= {(x["gateway"], x["to"]) for x in json.loads(d)}
+        rows = pathdb.read(con, sid, pm)
+        for row in rows:
+            steps |= set(row.steps)
+            taken |= {(x["gateway"], x["to"]) for x in row.decisions}
         if reach and not rows:
             no_path.append(name)
         want_nodes += len(reach)

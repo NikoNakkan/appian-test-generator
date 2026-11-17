@@ -39,6 +39,7 @@ Every package's `__init__.py` docstring lists its modules in one line each: star
 | Conditions in plain English | `sail/explain.py` |
 | Buttons / form fields on screens | `sail/actions.py`, `sail/fields.py`, `testgen/forms.py` |
 | Test paths through processes | `layers/path_engine.py` (pure), `layers/layer3_paths.py` (store) |
+| How paths are stored and read back | `pathdb.py` (the only module that touches `paths` rows) |
 | Features and reach | `layers/feature_engine.py` |
 | Test data per path / rule | `testgen/testdata.py` |
 | Screens and how people reach them | `testgen/screens.py` |
@@ -78,8 +79,9 @@ points), `paths` / `path_stats`, `entry_points`, `features` / `feature_members`,
 - Python 3.12, `from __future__ import annotations`, fully typed (`mypy --strict`), ruff
   (line length 100). Files stay at or under 250 lines: split by responsibility before that.
 - Module docstring first: what it does and the XML or data shape it reads.
-- Read the map only through `mapdb.py` (the agent package through its `Atlas`); write it only
-  in `store.py`, the layer runners and `agent/ledger.py` (runtime findings).
+- Read the map only through `mapdb.py` (paths through `pathdb.py`, the agent package through its
+  `Atlas`); write it only in `store.py`, the layer runners and `agent/ledger.py` (runtime
+  findings).
 - Three layers never mix: imported facts (the map), agent claims (`analysis/`, verified, each
   with a level: stated, inferred, statically supported), people's decisions (append-only).
   The agent has no tool that approves, merges, splits or authorises: only people decide.

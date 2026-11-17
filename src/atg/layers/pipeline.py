@@ -20,9 +20,13 @@ Progress = Callable[[str, int, int], None]
 
 
 def run_layers(
-    con: sqlite3.Connection, root: ExportRoot, progress: Progress | None = None
+    con: sqlite3.Connection,
+    root: ExportRoot,
+    progress: Progress | None = None,
+    max_paths: int | None = None,
 ) -> tuple[int, list[CheckResult]]:
-    """Returns the snapshot id and every check result, Layer 1 first."""
+    """Returns the snapshot id and every check result, Layer 1 first. `max_paths` caps the test
+    paths kept per process (default `path_engine.MAX_PATHS`); the map records the cap used."""
     report = progress or (lambda stage, done, total: None)
     snap = read_snapshot(root, on_file=lambda done, total: report("reading", done, total))
     report("saving", 0, 1)
@@ -32,7 +36,12 @@ def run_layers(
     layer2_sail.run(con, sid, on_source=lambda done, total: report("parsing SAIL", done, total))
     report("checking", 0, 1)
     results2 = checks2.run(con, sid)
-    layer3_paths.run(con, sid, on_process=lambda done, total: report("finding paths", done, total))
+    layer3_paths.run(
+        con,
+        sid,
+        on_process=lambda done, total: report("finding paths", done, total),
+        max_paths=max_paths,
+    )
     report("checking", 0, 1)
     results3 = checks3.run(con, sid)
     report("grouping features", 0, 1)

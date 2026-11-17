@@ -6,7 +6,11 @@ import json
 import sqlite3
 from typing import Any
 
+from atg import pathdb
 from atg.testgen import scenarios, screens, testdata
+
+# A process can have up to 20,000 paths: the list shows the first ones, the page jumps to any.
+PATHS_LISTED = 200
 
 
 def tests(con: sqlite3.Connection, sid: int) -> dict[str, Any]:
@@ -17,21 +21,20 @@ def tests(con: sqlite3.Connection, sid: int) -> dict[str, Any]:
         )
     }
     processes: dict[str, dict[str, Any]] = {}
-    for pm, no, decisions, tasks in con.execute(
-        "SELECT pm_uuid, path_no, decisions, tasks FROM paths WHERE snapshot_id = ? "
-        "ORDER BY pm_uuid, path_no",
-        (sid,),
-    ):
-        entry = processes.setdefault(
-            pm, {"uuid": pm, "name": objects.get(pm, ("", pm))[1], "paths": []}
-        )
-        entry["paths"].append(
-            {
-                "no": no,
-                "route": " → ".join(d["rule"] for d in json.loads(decisions)) or "straight through",
-                "tasks": len(json.loads(tasks)),
-            }
-        )
+    for pm, rows in pathdb.read_all(con, sid):
+        processes[pm] = {
+            "uuid": pm,
+            "name": objects.get(pm, ("", pm))[1],
+            "path_count": len(rows),
+            "paths": [
+                {
+                    "no": p.no,
+                    "route": " → ".join(d["rule"] for d in p.decisions) or "straight through",
+                    "tasks": len(p.tasks),
+                }
+                for p in rows[:PATHS_LISTED]
+            ],
+        }
     routes = screens.routes(con, sid)
     screen_list = [
         {

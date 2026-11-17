@@ -15,7 +15,11 @@ Code layout, where to change what, and conventions: see [CLAUDE.md](CLAUDE.md).
 - **Layer 3, process paths: built.** `src/atg/layers/path_engine.py`: one path per combination
   of gateway choices; AND splits run all branches; loops run 0, 1 and 2 times; paths whose
   choices contradict are dropped. Checks: every reachable node and every gateway option is on a
-  path, every process has a path, none cut off at the 2,000-path limit.
+  path, every process has a path, none cut off at the path limit (20,000 per process by default;
+  `atg ingest --max-paths N` changes it and the map records the limit each import used). A path
+  is stored as its steps and its gateway choices only; conditions, called processes and user
+  tasks are rebuilt from the process when read (`src/atg/pathdb.py`), so 20,000 paths take a few
+  MB. The Tests view lists the first 200 paths of a process and jumps to any other by number.
 - **Layer 4, features: built.** Entry points (site pages, record actions, web APIs) and
   everything each one reaches. A person approves them through an Excel sheet: dropdown
   decisions, blank never counts, edit needs a name, a changed feature needs re-approval.

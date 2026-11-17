@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 from atg import store
+from atg.layers import path_engine
 from atg.layers.pipeline import run_layers
 from atg.read.select import UnsupportedVersionError
 from atg.read.source import find_roots
@@ -22,6 +23,12 @@ def main(argv: list[str] | None = None) -> int:
     ing = sub.add_parser("ingest", help="read an export (folder or zip) into the map")
     ing.add_argument("export", type=Path)
     ing.add_argument("--db", type=Path, default=Path("map.db"))
+    ing.add_argument(
+        "--max-paths",
+        type=int,
+        default=None,
+        help=f"test paths kept per process (default {path_engine.MAX_PATHS:,})",
+    )
     chg = sub.add_parser(
         "changes", help="what changed since an earlier import, and which tests to run"
     )
@@ -71,7 +78,7 @@ def main(argv: list[str] | None = None) -> int:
     failed = False
     for root in roots:
         try:
-            sid, results = run_layers(con, root)
+            sid, results = run_layers(con, root, max_paths=args.max_paths)
         except UnsupportedVersionError as e:
             print(f"SKIP {e}")
             continue

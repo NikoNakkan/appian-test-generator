@@ -18,7 +18,7 @@ GATEWAYS = frozenset({"core.3", "core.4", "core.5"})
 STARTS = frozenset({"core.0"})
 ENDS = frozenset({"core.1"})
 LOOP_CAP = 1
-MAX_PATHS = 2000
+MAX_PATHS = 20_000  # default cap per process; `atg ingest --max-paths` changes it
 _PV = re.compile(r"pv!(\w+)")
 # Calls to app rules, queries or integrations can return something different each time.
 _UNSTABLE = re.compile(r'#"(?:_[a-z]-|[0-9a-fA-F]{8}-)|rule!|query|integration|now\(|today\(')
@@ -127,7 +127,8 @@ def gateway_options(g: Graph, gateway: int, nexts: list[int]) -> list[Decision]:
     return options
 
 
-def enumerate_paths(g: Graph) -> Result:
+def enumerate_paths(g: Graph, max_paths: int | None = None) -> Result:
+    cap = MAX_PATHS if max_paths is None else max_paths
     loops = back_edges(g)
     out: list[Path] = []
     infeasible = 0
@@ -138,7 +139,7 @@ def enumerate_paths(g: Graph) -> Result:
         tuple[list[tuple[int, int]], set[int], dict[tuple[int, int], int], Path, dict[str, bool]]
     ] = [([(-1, s)], set(), {}, Path(), {}) for s in starts(g)]
     while work:
-        if len(out) >= MAX_PATHS:
+        if len(out) >= cap:
             truncated = True
             break
         pending, visited, counts, path, known = work.pop()

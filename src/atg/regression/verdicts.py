@@ -11,6 +11,7 @@ import sqlite3
 from dataclasses import dataclass, field
 from typing import Any
 
+from atg import pathdb
 from atg.regression.impact import Impact, impacts, node_fingerprints, objects_of
 
 
@@ -27,12 +28,9 @@ class Verdict:
 def _paths(con: sqlite3.Connection, sid: int, pm: str) -> dict[str, tuple[int, list[int]]]:
     """Path signature (its steps and choices) -> (path number, steps)."""
     out = {}
-    for no, steps, decisions in con.execute(
-        "SELECT path_no, steps, decisions FROM paths WHERE snapshot_id = ? AND pm_uuid = ?",
-        (sid, pm),
-    ):
-        choice = [(d["gateway"], d["to"], d["rule"]) for d in json.loads(decisions)]
-        out[json.dumps([json.loads(steps), choice])] = (no, json.loads(steps))
+    for p in pathdb.read(con, sid, pm):
+        choice = [(d["gateway"], d["to"], d["rule"]) for d in p.decisions]
+        out[json.dumps([p.steps, choice])] = (p.no, p.steps)
     return out
 
 
